@@ -89,8 +89,21 @@ Intel (`x64`).
 | Linux | `~/.config/OurHappyHome` |
 | macOS | `~/Library/Application Support/OurHappyHome` (atau `~/.config/OurHappyHome`) |
 
-## Rilis lewat CI (opsional)
+## CI & rilis otomatis (GitHub Actions)
 
-Jalankan `build-windows.ps1` di runner Windows, `build-linux.sh` di Ubuntu (dengan `appimagetool`),
-dan `build-macos.sh` di runner macOS (supaya ada `.icns`, `codesign`, `ditto` dan `hdiutil`). Lalu
-unggah isi `artifacts/` sebagai aset rilis GitHub.
+| Workflow | Pemicu | Isi |
+|---|---|---|
+| `.github/workflows/ci.yml` | push ke `main`, pull request | build + 37 test di Windows, Ubuntu, macOS |
+| `.github/workflows/release.yml` | push tag `v*` atau manual (*Run workflow* + versi) | test, lalu build installer di 3 OS → GitHub Release |
+
+Merilis versi baru:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+Job `windows` memasang Inno Setup (setup.exe + zip portabel), `linux` memasang appimagetool
+(AppImage + tar.gz), `macos` membuat `.zip` + `.dmg` untuk arm64 dan x64. Job `publish`
+mengumpulkan semuanya, membuat `SHA256SUMS.txt`, lalu membuat rilis dengan catatan otomatis.
+Checkout memakai Git LFS agar model 3D ikut terbungkus.

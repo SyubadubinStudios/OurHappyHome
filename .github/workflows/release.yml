@@ -1,0 +1,138 @@
+name: Release
+
+# Push a tag like v1.0.0 (or run manually) to build the installers for every
+# platform and publish them as a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (without "v"), e.g. 1.0.1'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - id: v
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Test
+        run: dotnet test OurHappyHome.slnx -c Release
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build Windows packages
+        shell: pwsh
+        run: ./installer/windows/build-windows.ps1 -Version ${{ needs.version.outputs.version }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-windows
+          path: |
+            artifacts/*.zip
+            artifacts/*.exe
+
+  linux:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install appimagetool
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y desktop-file-utils
+          curl -fsSL -o /usr/local/bin/appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /usr/local/bin/appimagetool
+      - name: Build Linux packages
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: bash installer/linux/build-linux.sh ${{ needs.version.outputs.version }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-linux
+          path: |
+            artifacts/*.tar.gz
+            artifacts/*.AppImage
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build macOS packages
+        run: bash installer/macos/build-macos.sh ${{ needs.version.outputs.version }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-macos
+          path: |
+            artifacts/*.zip
+            artifacts/*.dmg
+
+  publish:
+    needs: [version, windows, linux, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: release
+          merge-multiple: true
+      - name: Checksums
+        run: cd release && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: Our Happy Home v${{ needs.version.outputs.version }}
+          generate_release_notes: true
+          body: |
+            ## 🏡 Our Happy Home v${{ needs.version.outputs.version }}
+
+            *Setiap hari adalah cerita. Setiap keluarga adalah petualangan.*
+            Dibuat oleh Ariana Mischa Fadhila dari Syubadubin Studios.
+
+            | Platform | File | Cara pasang |
+            |---|---|---|
+            | Windows 10/11 x64 | `*-win-x64-setup.exe` | Jalankan installer |
+            | Windows (portabel) | `*-win-x64-portable.zip` | Ekstrak → `OurHappyHome.exe` atau `install.cmd` |
+            | Linux x64 | `*-x86_64.AppImage` | `chmod +x` lalu jalankan |
+            | Linux x64 | `*-linux-x64.tar.gz` | Ekstrak → `./install.sh` |
+            | macOS Apple Silicon | `*-macos-arm64.dmg` / `.zip` | Seret ke Applications (klik kanan → Open pertama kali) |
+            | macOS Intel | `*-macos-x64.dmg` / `.zip` | Seret ke Applications |
+
+            Panduan lengkap: [docs/installer.md](https://github.com/${{ github.repository }}/blob/main/docs/installer.md)
+          files: release/*

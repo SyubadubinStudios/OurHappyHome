@@ -5,7 +5,6 @@ GenericName=Family Life Simulation
 Comment=Every day is a story. Every family is an adventure. — Syubadubin Studios
 Comment[id]=Setiap hari adalah cerita. Setiap keluarga adalah petualangan.
 Exec=OurHappyHome
-Path=
 Icon=ourhappyhome
 Terminal=false
 Categories=Game;Simulation;

@@ -1,5 +1,10 @@
 # 🏡 Our Happy Home
 
+[![CI](https://github.com/SyubadubinStudios/OurHappyHome/actions/workflows/ci.yml/badge.svg)](https://github.com/SyubadubinStudios/OurHappyHome/actions/workflows/ci.yml)
+[![Release](https://github.com/SyubadubinStudios/OurHappyHome/actions/workflows/release.yml/badge.svg)](https://github.com/SyubadubinStudios/OurHappyHome/releases/latest)
+
+**⬇ Unduh / Download:** [Rilis terbaru (Windows · Linux · macOS)](https://github.com/SyubadubinStudios/OurHappyHome/releases/latest)
+
 > *Setiap hari adalah cerita. Setiap keluarga adalah petualangan.*
 > *Every day is a story. Every family is an adventure.*
 

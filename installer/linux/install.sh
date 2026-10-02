@@ -16,7 +16,7 @@ rm -f "$DEST/install.sh"
 chmod +x "$DEST/OurHappyHome" "$DEST/uninstall.sh"
 ln -sf "$DEST/OurHappyHome" "$BIN/ourhappyhome"
 cp "$SRC/ourhappyhome.png" "$ICONS/ourhappyhome.png"
-sed "s|^Exec=.*|Exec=$DEST/OurHappyHome|; s|^Path=.*|Path=$DEST|" "$SRC/ourhappyhome.desktop" > "$APPS/ourhappyhome.desktop"
+{ sed "s|^Exec=.*|Exec=$DEST/OurHappyHome|" "$SRC/ourhappyhome.desktop"; echo "Path=$DEST"; } > "$APPS/ourhappyhome.desktop"
 chmod +x "$APPS/ourhappyhome.desktop"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APPS" || true
 

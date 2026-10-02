@@ -57,7 +57,7 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - [x] Uji pasang, jalankan dan copot di Windows
 - [ ] Uji paket Linux & macOS di perangkat asli
 - [ ] Tanda tangan kode (Authenticode / Developer ID) dan notarisasi
-- [ ] Pipeline CI rilis otomatis
+- [x] CI (build + test 3 OS) dan rilis otomatis installer ke GitHub Releases
 
 ## Catatan perbaikan selama pengembangan
 - Titik pendekatan kursi makan semula berada di dalam meja, sehingga AI tidak pernah sampai. Sekarang titiknya dihitung di luar footprint, dan perjalanan punya batas waktu.
