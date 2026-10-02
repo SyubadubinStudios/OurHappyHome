@@ -1,0 +1,338 @@
+using System.Numerics;
+using OurHappyHome.Core;
+using OurHappyHome.Core.Cooking;
+using OurHappyHome.Core.Family;
+using OurHappyHome.Core.Scenarios;
+using OurHappyHome.Core.Simulation;
+using OurHappyHome.Core.Time;
+using OurHappyHome.Core.World;
+
+namespace OurHappyHome.Tests;
+
+public class SimulationTests
+{
+    private static GameSession NewSession(GameMode mode = GameMode.Normal, ulong seed = 42)
+    {
+        SaveSystem.Folder = Path.Combine(Path.GetTempPath(), "ohh-tests-" + Guid.NewGuid().ToString("N"));
+        return GameSession.NewGame(mode, "Raka", new GameSettings(), seed);
+    }
+
+    /// <summary>Runs the simulation for game minutes with a fixed real time step.</summary>
+    private static void Run(GameSession session, double gameMinutes, float step = 0.1f)
+    {
+        double end = session.Now + gameMinutes;
+        int guard = 0;
+        while (session.Now < end && guard++ < 2_000_000)
+        {
+            if (session.PendingMiniGame is not null)
+            {
+                session.CompleteMiniGame(0.7f);
+            }
+
+            if (session.ScenarioFailed)
+            {
+                session.AbandonScenario();
+            }
+
+            session.Tick(step);
+            while (session.Bus.TryDequeue(out _))
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void NewGameHasFiveIndependentMembers()
+    {
+        GameSession s = NewSession();
+        Assert.Equal(5, s.State.Members.Count);
+        Assert.Equal(FamilyNames.All, s.State.Members.Select(m => m.Id));
+        Assert.All(s.State.Members, m => Assert.False(s.Collision.Blocked(m.Position, GameSession.CharacterRadius * 0.8f)));
+    }
+
+    [Fact]
+    public void FamilyLivesAutonomouslyThroughTwoDays()
+    {
+        GameSession s = NewSession(seed: 7);
+        Run(s, 2 * 24 * 60);
+        Assert.True(s.Clock.DayIndex >= 2);
+
+        // Autonomous members should never starve or collapse (the controlled one waits for the player).
+        foreach (FamilyMember m in s.State.Members.Where(m => m.Id != s.State.Controlled))
+        {
+            Assert.True(m.Needs[NeedKind.Hunger] > 5f, $"{m.Id} hunger {m.Needs[NeedKind.Hunger]}");
+            Assert.True(m.Needs[NeedKind.Health] > 30f, $"{m.Id} health {m.Needs[NeedKind.Health]}");
+        }
+
+        Assert.True(s.State.Stat(Core.Progression.Stat.FamilyMeals) >= 1, "the family should have eaten together");
+        Assert.NotEmpty(s.State.Memories);
+    }
+
+    [Theory]
+    [InlineData(1UL, GameMode.Cozy)]
+    [InlineData(2UL, GameMode.Normal)]
+    [InlineData(3UL, GameMode.Adventure)]
+    public void FamilyStaysHealthyForAWeek(ulong seed, GameMode mode)
+    {
+        GameSession s = NewSession(mode, seed);
+        Run(s, 7 * 24 * 60);
+        foreach (FamilyMember m in s.State.Members.Where(m => m.Id != s.State.Controlled && !m.Away))
+        {
+            Assert.True(m.Needs[NeedKind.Hunger] > 5f, $"{m.Id} hunger {m.Needs[NeedKind.Hunger]} (seed {seed})");
+            Assert.True(m.Needs[NeedKind.Sleep] > 5f, $"{m.Id} sleep {m.Needs[NeedKind.Sleep]} (seed {seed})");
+        }
+
+        Assert.True(s.State.Stat(Core.Progression.Stat.FamilyMeals) >= 4, $"meals {s.State.Stat(Core.Progression.Stat.FamilyMeals)}");
+        Assert.True(s.State.Memories.Count >= 5);
+    }
+
+    [Fact]
+    public void ControlledMemberDoesNotRunAi()
+    {
+        GameSession s = NewSession();
+        Vector2 start = s.Controlled.Position;
+        Run(s, 30);
+        Assert.Null(s.Controlled.Task);
+        Assert.Equal(start, s.Controlled.Position);
+    }
+
+    [Fact]
+    public void PlayerMovesAndCollidesWithWalls()
+    {
+        GameSession s = NewSession();
+        s.PlayerMove = new Vector2(0f, -1f); // towards the back wall of the kids' room
+        for (int i = 0; i < 200; i++)
+        {
+            s.Tick(0.05f);
+        }
+
+        // The back wall is at z = -6: the player must stop in front of it.
+        Assert.True(s.Controlled.Position.Y > -6f + GameSession.CharacterRadius - 0.05f);
+    }
+
+    [Fact]
+    public void WallsHaveDoorsBetweenBuiltRooms()
+    {
+        House house = House.CreateStarter();
+        Assert.Contains(house.Doors, d => d.Exterior);
+        Assert.Contains(house.Doors, d => d.A == RoomId.Hall || d.B == RoomId.Hall);
+        Assert.DoesNotContain(house.Doors, d => d.B == RoomId.GirlsBedroom);
+        house.Build(RoomId.GirlsBedroom);
+        house.Touch();
+        Assert.Contains(house.Doors, d => d.B == RoomId.GirlsBedroom || d.A == RoomId.GirlsBedroom);
+    }
+
+    [Fact]
+    public void NavigationFindsPathFromBedroomToKitchen()
+    {
+        GameSession s = NewSession();
+        List<Vector2>? path = s.FindPath(new Vector2(3f, -3f), new Vector2(3f, 4f));
+        Assert.NotNull(path);
+        Assert.True(path!.Count >= 2);
+    }
+
+    [Fact]
+    public void CookingQualityFollowsSkill()
+    {
+        GameRandom r = new(1);
+        Recipe pancakes = Recipes.Get("pancakes");
+        int lowGood = 0;
+        int highGood = 0;
+        for (int i = 0; i < 300; i++)
+        {
+            lowGood += Recipes.Evaluate(pancakes, 0f, null, false, r) >= CookQuality.Delicious ? 1 : 0;
+            highGood += Recipes.Evaluate(pancakes, 9f, null, false, r) >= CookQuality.Delicious ? 1 : 0;
+        }
+
+        Assert.True(highGood > lowGood * 2);
+        Assert.Equal(CookQuality.Perfect, Recipes.Evaluate(pancakes, 10f, 1f, true, r));
+        Assert.Equal(CookQuality.Failed, Recipes.Evaluate(pancakes, 0f, 0f, false, r));
+    }
+
+    [Theory]
+    [InlineData(100f, StaminaState.Ready)]
+    [InlineData(60f, StaminaState.Tired)]
+    [InlineData(20f, StaminaState.Exhausted)]
+    [InlineData(0f, StaminaState.MustRecover)]
+    public void StaminaThresholdsMatchDesign(float value, StaminaState expected)
+    {
+        Stamina stamina = new() { Value = value };
+        Assert.Equal(expected, stamina.State);
+    }
+
+    [Fact]
+    public void ExhaustedCannotDoDemandingActions()
+    {
+        Stamina stamina = new() { Value = 15f };
+        Assert.False(stamina.TrySpend(10f));
+        stamina.Value = 0f;
+        stamina.Value = 20f;
+        Assert.Equal(StaminaState.MustRecover, stamina.State); // still recovering until 35%
+        stamina.Value = 40f;
+        Assert.True(stamina.CanDoDemanding);
+    }
+
+    [Fact]
+    public void SaveAndLoadRoundTrips()
+    {
+        GameSession s = NewSession();
+        Run(s, 300);
+        s.State.Wallet.Earn(12345, "test", 0);
+        string json = SaveSystem.Serialize(s.State);
+        GameState loaded = SaveSystem.Deserialize(json);
+        Assert.Equal(s.State.Wallet.Money, loaded.Wallet.Money);
+        Assert.Equal(s.State.Clock.TotalMinutes, loaded.Clock.TotalMinutes, 3);
+        Assert.Equal(s.State.House.Furniture.Count, loaded.House.Furniture.Count);
+        Assert.Equal(s.State.Relationships[MemberId.Player, MemberId.Father], loaded.Relationships[MemberId.Player, MemberId.Father], 3);
+        Assert.Equal(s.State.Members[2].Skills[SkillKind.Drawing], loaded.Members[2].Skills[SkillKind.Drawing], 3);
+        Assert.Equal(s.State.Memories.Count, loaded.Memories.Count);
+    }
+
+    [Theory]
+    [InlineData(ScenarioKind.CatVisitor)]
+    [InlineData(ScenarioKind.LightBulb)]
+    [InlineData(ScenarioKind.FaucetLeak)]
+    [InlineData(ScenarioKind.ApplianceBroken)]
+    [InlineData(ScenarioKind.MonkeyThief)]
+    [InlineData(ScenarioKind.PowerOutage)]
+    [InlineData(ScenarioKind.LocalFlood)]
+    [InlineData(ScenarioKind.DangerousAnimal)]
+    [InlineData(ScenarioKind.SuspiciousStranger)]
+    [InlineData(ScenarioKind.Burglary)]
+    [InlineData(ScenarioKind.SmallFire)]
+    [InlineData(ScenarioKind.GreatStorm)]
+    public void EveryScenarioStartsAndTicksWithoutErrors(ScenarioKind kind)
+    {
+        GameSession s = NewSession(GameMode.Adventure, 99);
+        Run(s, 120);
+        s.StartScenario(kind);
+        Assert.NotNull(s.Scenario);
+        Assert.NotEmpty(s.Scenario!.Objectives);
+        _ = s.GetInteractions();
+        Run(s, 90);
+    }
+
+    [Fact]
+    public void FailedRescueCanBeRestarted()
+    {
+        GameSession s = NewSession(GameMode.Adventure, 5);
+        Run(s, 60);
+        s.StartScenario(ScenarioKind.SmallFire);
+        FamilyMember? trapped = s.State.Members.FirstOrDefault(m => m.InDanger);
+        Assert.NotNull(trapped);
+
+        // Let the rescue timer run out in real seconds.
+        for (int i = 0; i < 4000 && !s.ScenarioFailed; i++)
+        {
+            s.Tick(0.1f);
+        }
+
+        Assert.True(s.ScenarioFailed);
+        s.RestartScenario();
+        Assert.False(s.ScenarioFailed);
+        Assert.NotNull(s.Scenario);
+        Assert.Equal(ScenarioKind.SmallFire, s.Scenario!.Kind);
+    }
+
+    [Fact]
+    public void RescuedMemberBecomesSafe()
+    {
+        GameSession s = NewSession(GameMode.Normal, 11);
+        Run(s, 60);
+        s.StartScenario(ScenarioKind.DangerousAnimal);
+        FamilyMember? child = s.State.Members.FirstOrDefault(m => m.InDanger);
+        Assert.NotNull(child);
+        s.Controlled.Position = child!.Position + new Vector2(0.8f, 0f);
+        s.Rescue(s.Controlled, child);
+        Assert.Equal(SafetyState.Following, child.Safety);
+
+        // Walk the player into the living room; the child follows.
+        s.Controlled.Position = new Vector2(-3f, 3f);
+        for (int i = 0; i < 200; i++)
+        {
+            s.Tick(0.1f);
+        }
+
+        Assert.NotEqual(SafetyState.Following, child.Safety);
+        Assert.False(s.ScenarioFailed);
+    }
+
+    [Fact]
+    public void CozyModeHasFewerDangerousEvents()
+    {
+        GameSession cozy = NewSession(GameMode.Cozy);
+        GameSession adventure = NewSession(GameMode.Adventure);
+        Assert.True(cozy.Director.DangerMultiplier(Rarity.Rare) < adventure.Director.DangerMultiplier(Rarity.Rare) / 10f);
+    }
+
+    [Fact]
+    public void BuildingARoomCostsMoneyAndAddsWalls()
+    {
+        GameSession s = NewSession();
+        s.State.Wallet.Money = 10_000_000;
+        int walls = s.State.House.Walls.Count;
+        Assert.True(s.BuildRoom(RoomId.GirlsBedroom));
+        Assert.True(s.State.House.Has(RoomId.GirlsBedroom));
+        Assert.Equal(7_500_000, s.State.Wallet.Money);
+        Assert.NotEqual(walls, s.State.House.Walls.Count);
+        Assert.Contains(s.State.House.Furniture, f => f.Room == RoomId.GirlsBedroom);
+    }
+
+    [Fact]
+    public void FurniturePlacementRejectsOverlaps()
+    {
+        House house = House.CreateStarter();
+        FurnitureDef sofa = FurnitureCatalog.Get("sofa");
+        Assert.False(house.CanPlace(sofa, RoomId.LivingRoom, new Vector2(-3.4f, 1.0f), 0));
+        Assert.False(house.CanPlace(sofa, RoomId.LivingRoom, new Vector2(-30f, 1.0f), 0));
+    }
+
+    [Fact]
+    public void CalendarHasDesignDocumentDates()
+    {
+        GameDate first = GameDate.FromDayIndex(0);
+        Assert.Equal((1, 3, Weekday.Monday), (first.Month, first.Day, first.Weekday));
+        Assert.Contains(Calendar.EventsOn(GameDate.FromDayIndex(GameDate.ToDayIndex(1, 1, 12))), e => e.Kind == CalendarEventKind.Birthday && e.Member == MemberId.YoungerSister);
+        Assert.Contains(Calendar.EventsOn(GameDate.FromDayIndex(GameDate.ToDayIndex(1, 1, 18))), e => e.Kind == CalendarEventKind.Camping);
+        Assert.Contains(Calendar.EventsOn(GameDate.FromDayIndex(GameDate.ToDayIndex(1, 1, 24))), e => e.Kind == CalendarEventKind.Festival);
+    }
+
+    [Fact]
+    public void GiftsFollowLikes()
+    {
+        GameSession s = NewSession();
+        s.State.Inventory.Add("storybook");
+        s.State.Inventory.Add("toolset");
+        float before = s.State.Relationships[MemberId.Player, MemberId.YoungerSister];
+        s.GiveGift(MemberId.YoungerSister, "storybook");
+        float loved = s.State.Relationships[MemberId.Player, MemberId.YoungerSister] - before;
+        before = s.State.Relationships[MemberId.Player, MemberId.OlderSister];
+        s.GiveGift(MemberId.OlderSister, "toolset");
+        float meh = s.State.Relationships[MemberId.Player, MemberId.OlderSister] - before;
+        Assert.True(loved > meh);
+    }
+
+    [Fact]
+    public void SchoolQuizzesHaveValidAnswers()
+    {
+        GameRandom r = new(3);
+        foreach (Core.School.Subject subject in Core.School.Lessons.All)
+        {
+            foreach (Core.School.Question q in Core.School.Lessons.Quiz(subject, 4f, r, 8))
+            {
+                Assert.InRange(q.Answer, 0, q.Choices.Length - 1);
+                Assert.Equal(q.Choices.Length, q.Choices.Distinct().Count());
+            }
+        }
+    }
+
+    [Fact]
+    public void WorldPlacesAreReachableAndNotBlocked()
+    {
+        GameSession s = NewSession();
+        foreach (Place place in s.Map.Places)
+        {
+            Assert.False(s.Collision.Blocked(place.Entrance, GameSession.CharacterRadius), $"{place.Id} entrance is blocked");
+        }
+    }
+}

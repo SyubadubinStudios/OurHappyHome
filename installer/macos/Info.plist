@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>Our Happy Home</string>
+  <key>CFBundleDisplayName</key>
+  <string>Our Happy Home</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.syubadubin.ourhappyhome</string>
+  <key>CFBundleVersion</key>
+  <string>__VERSION__</string>
+  <key>CFBundleShortVersionString</key>
+  <string>__VERSION__</string>
+  <key>CFBundleExecutable</key>
+  <string>OurHappyHome</string>
+  <key>CFBundleIconFile</key>
+  <string>OurHappyHome</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.simulation-games</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>12.0</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSHumanReadableCopyright</key>
+  <string>Dibuat oleh Ariana Mischa Fadhila dari Syubadubin Studios</string>
+</dict>
+</plist>

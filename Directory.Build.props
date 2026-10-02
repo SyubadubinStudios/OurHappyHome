@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Authors>Ariana Mischa Fadhila - Syubadubin Studios</Authors>
+    <Company>Syubadubin Studios</Company>
+    <Product>Our Happy Home</Product>
+    <Copyright>Copyright (c) Syubadubin Studios</Copyright>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+</Project>
