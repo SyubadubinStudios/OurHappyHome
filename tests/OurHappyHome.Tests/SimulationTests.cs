@@ -72,6 +72,9 @@ public class SimulationTests
     [InlineData(1UL, GameMode.Cozy)]
     [InlineData(2UL, GameMode.Normal)]
     [InlineData(3UL, GameMode.Adventure)]
+    [InlineData(4UL, GameMode.Cozy)]
+    [InlineData(5UL, GameMode.Normal)]
+    [InlineData(6UL, GameMode.Adventure)]
     public void FamilyStaysHealthyForAWeek(ulong seed, GameMode mode)
     {
         GameSession s = NewSession(mode, seed);
@@ -430,5 +433,141 @@ public class SimulationTests
         s.GetInteractions().First(t => t.Key == "interior-exit").Options[0].Execute();
         Assert.Null(s.CurrentInterior);
         Assert.Equal(market.Entrance, s.Controlled.Position);
+    }
+
+    // ------------------------------------------------------------------ v1.2
+
+    /// <summary>Jumps the clock to a date and hour without simulating the time in between.</summary>
+    private static void SetTime(GameSession s, int month, int day, float hour)
+    {
+        int index = GameDate.ToDayIndex(1, month, day);
+        s.State.Clock.TotalMinutes = (index * 1440.0) + (hour * 60.0);
+        s.State.ScheduleCursor = s.State.Clock.TotalMinutes - 0.5;
+        s.Tick(0.05f);
+    }
+
+    [Fact]
+    public void HolidaysSeasonsAndFestivalsFollowTheCalendar()
+    {
+        GameDate first = GameDate.FromDayIndex(0);
+        Assert.True(first.IsSchoolDay);
+        Assert.Equal(Season.Rainy, first.Season);
+
+        GameDate independence = GameDate.FromDayIndex(GameDate.ToDayIndex(1, 8, 17));
+        Assert.False(independence.IsWorkDay);
+        Assert.False(independence.IsSchoolDay);
+        Assert.Equal(Season.Dry, independence.Season);
+        Assert.True(Calendar.IsFestivalDay(independence));
+
+        GameDate breakDay = GameDate.FromDayIndex(GameDate.ToDayIndex(1, 7, 1));
+        Assert.Equal(breakDay.Weekday is Weekday.Saturday or Weekday.Sunday ? false : true, breakDay.IsWorkDay);
+        Assert.False(breakDay.IsSchoolDay);
+
+        // Every month has a festival on its fourth Saturday.
+        for (int month = 1; month <= 12; month++)
+        {
+            Assert.Contains(Enumerable.Range(1, GameDate.DaysInMonth(month)), d => Calendar.IsFestivalDay(GameDate.FromDayIndex(GameDate.ToDayIndex(1, month, d))));
+        }
+
+        Assert.Contains(Calendar.EventsOn(GameDate.FromDayIndex(GameDate.ToDayIndex(1, 12, 22))), e => e.Kind == CalendarEventKind.MothersDay);
+    }
+
+    [Fact]
+    public void NeighboursFollowTheirSchedulesAndDimasVisitsFriends()
+    {
+        GameSession s = NewSession();
+        Npc teacher = s.Npcs.Single(n => n.Id == "teacher");
+        Npc dimas = s.Npcs.Single(n => n.Id == "dimas");
+        Interior classroom = s.Map.InteriorFor(PlaceId.School)!;
+
+        SetTime(s, 1, 3, 9f); // Monday
+        Assert.True(teacher.Present);
+        Assert.True(classroom.Area.Contains(teacher.Position));
+        Assert.True(classroom.Area.Contains(dimas.Position));
+
+        SetTime(s, 1, 8, 10f); // Saturday: no school, Dimas does not know us yet
+        Assert.False(classroom.Area.Contains(teacher.Position));
+        Assert.False(dimas.Present);
+
+        s.State.Friendships["dimas"] = 35f;
+        SetTime(s, 1, 9, 10f); // Sunday morning: a good friend comes over
+        Assert.True(dimas.Present);
+        Assert.True(Rooms.Lot.Contains(dimas.Position));
+    }
+
+    [Fact]
+    public void FestivalStallsOpenOnFestivalDaysAndContestsMakeMemories()
+    {
+        GameSession s = NewSession();
+        SetTime(s, 1, 24, 16f);
+        Assert.True(s.FestivalActive);
+        s.Travel(PlaceId.Park, true);
+        TownFeature stall = s.Map.Features.First(f => f.Kind == FeatureKind.FestivalStall && f.Label == "tug");
+        s.Controlled.Position = stall.Area.Center + new Vector2(0f, 1.6f);
+        InteractionOption tug = s.GetInteractions().SelectMany(t => t.Options).First(o => o.Id == "tug");
+        Assert.True(tug.Enabled, tug.Reason);
+        tug.Execute();
+        Assert.Equal("tug", s.PendingMiniGame?.Kind);
+        int memories = s.State.Memories.Count;
+        s.CompleteMiniGame(0.9f);
+        Assert.Equal(memories + 1, s.State.Memories.Count);
+        Assert.Equal(1, s.State.Stat(Core.Progression.Stat.FestivalGames));
+
+        SetTime(s, 1, 25, 16f);
+        Assert.False(s.FestivalActive);
+    }
+
+    [Fact]
+    public void DrivingIsFasterAndTheAngkotCostsAFare()
+    {
+        GameSession s = NewSession();
+        Assert.False(s.CanDrive); // no garage and car yet
+        s.State.House.Furniture.Add(new FurnitureItem { Uid = 9_999, DefId = "car", Room = RoomId.Garage, Position = new Vector2(11.5f, 9f) });
+        Assert.True(s.CanDrive);
+        float walk = s.TravelMinutes(PlaceId.Beach, TravelMode.Walk);
+        float car = s.TravelMinutes(PlaceId.Beach, TravelMode.Car);
+        Assert.True(car < walk);
+
+        s.Travel(PlaceId.Mall, false, TravelMode.Car);
+        Assert.Contains(MemberId.Father, s.State.Party);
+
+        s.Travel(PlaceId.Home, false);
+        long money = s.State.Wallet.Money;
+        s.Travel(PlaceId.Park, false, TravelMode.Angkot);
+        Assert.Equal(money - GameSession.AngkotFare, s.State.Wallet.Money);
+    }
+
+    [Fact]
+    public void FamilyCanCampOvernightOnlyBeforeADayOff()
+    {
+        GameSession s = NewSession();
+        s.State.Inventory.Add("tent");
+        SetTime(s, 1, 4, 19f); // Tuesday: school tomorrow
+        s.Travel(PlaceId.Camping, true);
+        Assert.NotNull(s.OvernightBlocked(PlaceId.Camping));
+
+        SetTime(s, 1, 8, 19f); // Saturday evening
+        s.Travel(PlaceId.Camping, true);
+        Assert.Null(s.OvernightBlocked(PlaceId.Camping));
+        Assert.True(s.StayOvernight(PlaceId.Camping));
+        Assert.Equal(7f, s.Hour, 1);
+        Assert.Equal(Weekday.Sunday, s.Date.Weekday);
+        Assert.All(s.State.Members.Where(m => !m.Away), m => Assert.True(m.Needs[NeedKind.Sleep] > 95f));
+        Assert.Contains(s.State.Memories, m => m.Tag.StartsWith("overnight:", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void MembersDressForTheRainUnlessThePlayerChoseACostume()
+    {
+        GameSession s = NewSession();
+        s.SetWeather(WeatherKind.Rain);
+        FamilyMember dinda = s.State.Member(MemberId.YoungerSister);
+        FamilyMember nara = s.State.Member(MemberId.OlderSister);
+        s.State.Inventory.Add("crown");
+        Assert.True(s.SetAccessory(MemberId.OlderSister, "crown"));
+        dinda.Position = nara.Position = new Vector2(-6f, 11f); // front yard
+        SetTime(s, 1, 3, 10f + (10f / 60f));
+        Assert.Equal("rain-hat", dinda.Accessory);
+        Assert.Equal("crown", nara.Accessory);
     }
 }

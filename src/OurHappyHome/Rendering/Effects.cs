@@ -184,7 +184,7 @@ public sealed class Effects
         for (int i = 0; i < 26; i++)
         {
             Vector3 dir = Vector3.Normalize(new Vector3(Rand(-1, 1), Rand(-1, 1), Rand(-1, 1)));
-            Emit(material, center, dir * Rand(5f, 7f), 1.6f, 0.45f, 0.1f, -2f, 0.8f);
+            Emit(material, center, dir * Rand(5f, 7f), 1.8f, 0.8f, 0.15f, -2f, 0.8f);
         }
     }
 

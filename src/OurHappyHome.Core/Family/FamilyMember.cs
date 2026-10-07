@@ -91,6 +91,12 @@ public sealed class FamilyMember
     /// <summary>Costume item worn on the head (party hat, straw hat...), or null.</summary>
     public string? Accessory { get; set; }
 
+    /// <summary>
+    /// True until the player picks a costume: the member then dresses for the
+    /// weather on their own (rain hat in the rain, straw hat in the dry-season sun).
+    /// </summary>
+    public bool AccessoryAuto { get; set; } = true;
+
     public List<int> MemoryIds { get; set; } = [];
 
     /// <summary>Who this member is following on a trip or rescue.</summary>

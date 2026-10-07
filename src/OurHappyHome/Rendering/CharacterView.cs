@@ -37,6 +37,8 @@ public sealed class CharacterView
         public Mannequin? Fallback;
         public Node? Hat;
         public string? HatId;
+        public Jaw? Jaw;
+        public float TalkUntil;
     }
 
     private readonly Scene _scene;
@@ -101,6 +103,7 @@ public sealed class CharacterView
                 }
 
                 rig.Model.SetShadowsRecursive(true, true);
+                rig.Jaw = Jaw.Find(rig.Model);
                 if (import.AnimationCount == 0)
                 {
                     rig.Clips.Clear();
@@ -184,7 +187,15 @@ public sealed class CharacterView
 
         // Cross-fade between clips; standing members talk while their bubble is up.
         string? text = m.Bubble is not null && session.Now <= m.BubbleUntil ? m.Bubble : null;
-        Play(rig, text is not null && m.Animation == "Idle" && !m.Moving && m.Anchor is null ? "Talk" : m.Animation);
+        if (text is not null && text != rig.BubbleText)
+        {
+            // Roughly as long as the line takes to say.
+            rig.TalkUntil = _time + Math.Clamp(text.Length * 0.065f, 0.8f, 4f);
+        }
+
+        bool talking = _time < rig.TalkUntil && text is not null;
+        Play(rig, IdleClip(m, talking));
+        rig.Jaw?.Update(talking, _time, dt, m.InDanger || m.Animation == "Scared" ? 0.35f : 0f);
         if (rig.Previous is not null)
         {
             rig.Fade = MathF.Min(1f, rig.Fade + (dt * 5f));
@@ -326,6 +337,26 @@ public sealed class CharacterView
         }
     }
 
+    /// <summary>
+    /// Body language: standing members talk while speaking, bounce when happy and
+    /// slump when sad (faces are textures, so the whole body carries the emotion).
+    /// </summary>
+    private static string IdleClip(FamilyMember m, bool talking)
+    {
+        string clip = m.Animation;
+        if (clip != "Idle" || m.Moving || m.Anchor is not null)
+        {
+            return clip;
+        }
+
+        if (talking)
+        {
+            return "Talk";
+        }
+
+        return m.Mood.Score >= 55f ? "Happy" : m.Mood.Score <= -15f || m.Sick ? "Sad" : "Idle";
+    }
+
     /// <summary>A small costume piece sitting on top of the head (models face +Z, feet at y = 0).</summary>
     private Node BuildHat(Node model, string id, float height)
     {
@@ -346,6 +377,14 @@ public sealed class CharacterView
                 _m.Cylinder(hat, new Vector3(0f, 0.07f, 0f), 0.12f, 0.11f, _t.Solid("#E9C46A", 0.9f));
                 _m.Cylinder(hat, new Vector3(0f, 0.04f, 0f), 0.123f, 0.03f, _t.Solid("#E63946", 0.7f));
                 break;
+            case "rain-hat":
+                {
+                    Material yellow = _t.Solid("#FFD23F", 0.35f);
+                    _m.Cone(hat, new Vector3(0f, -0.02f, -0.01f), 0.23f, 0.09f, yellow);
+                    _m.Sphere(hat, new Vector3(0f, 0.05f, 0f), new Vector3(0.24f, 0.17f, 0.25f), yellow, true);
+                    break;
+                }
+
             case "beanie":
                 _m.Sphere(hat, new Vector3(0f, 0.01f, 0f), new Vector3(0.27f, 0.19f, 0.27f), _t.Solid("#4361EE", 0.95f), true);
                 _m.Cylinder(hat, new Vector3(0f, -0.04f, 0f), 0.13f, 0.05f, _t.Solid("#F1FAEE", 0.95f), true);
@@ -460,7 +499,7 @@ public sealed class CharacterView
                 _npcs[npc.Id] = visual;
             }
 
-            bool present = npc.Present(session.Hour);
+            bool present = npc.Present;
             visual.Node.Visible = present;
             if (present)
             {
@@ -470,6 +509,7 @@ public sealed class CharacterView
                 {
                     figure.Play(npc.Talking ? "Talk" : npc.Moving ? "Walk" : "Idle");
                     figure.Update(dt);
+                    figure.Jaw?.Update(npc.Talking, _time, dt);
                 }
             }
         }

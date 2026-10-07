@@ -62,6 +62,7 @@ public static class ItemCatalog
         new("camera", "Kamera Instan", "Instant Camera", "📷", ItemCategory.Hobby, 450_000, Mall, ["photography"]),
         new("bicycle", "Sepeda", "Bicycle", "🚲", ItemCategory.Hobby, 900_000, Mall, ["cycling", "outdoor"]),
         new("tent", "Tenda Kemah", "Camping Tent", "⛺", ItemCategory.Hobby, 350_000, Mall, ["outdoor"]),
+        new("rain-hat", "Topi Hujan", "Rain Hat", "☔", ItemCategory.Costume, 40_000, Mall, ["outdoor"]),
         new("party-hat", "Topi Pesta", "Party Hat", "🥳", ItemCategory.Costume, 25_000, Mall, ["party", "cute"]),
         new("straw-hat", "Topi Jerami", "Straw Hat", "👒", ItemCategory.Costume, 60_000, Mall, ["outdoor", "gardening"]),
         new("beanie", "Kupluk Rajut", "Knitted Beanie", "🧶", ItemCategory.Costume, 55_000, Mall, ["fashion", "cute"]),
@@ -106,6 +107,7 @@ public sealed class Inventory
         {
             ("rice", 4), ("egg", 8), ("flour", 2), ("milk", 3), ("sugar", 2), ("vegetables", 3),
             ("snack", 4), ("chocolate", 1), ("fruit", 2), ("flashlight", 1), ("bulb", 1), ("water", 2), ("pet-food", 2),
+            ("rain-hat", 1),
         })
         {
             inventory.Add(id, n);

@@ -12,7 +12,7 @@
 ```bash
 dotnet build OurHappyHome.slnx                       # build semua
 dotnet run --project src/OurHappyHome                # main
-dotnet test                                          # 41 test simulasi (±8 detik)
+dotnet test                                          # 50 test simulasi (±12 detik)
 dotnet run --project src/OurHappyHome -- --screenshots docs/images   # ambil ulang semua screenshot
 dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket rilis
 ```
@@ -37,6 +37,9 @@ dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket
   dan semua pintu masuk tempat di kota bisa dicapai
 - interior tertutup dinding dengan titik masuk, keluar dan layanan yang bebas; keluarga bisa masuk,
   belanja di kasir, lalu keluar lagi dari supermarket
+- kalender: hari libur, libur semester, musim dan festival bulanan; tetangga mengikuti jadwal dan Dimas
+  berkunjung saat sudah berteman baik; stan festival dan lomba membuat kenangan; mobil lebih cepat dan
+  angkot memungut ongkos; menginap hanya sebelum hari libur; pakaian otomatis saat hujan
 - semua resep memakai bahan yang ada di katalog; kostum butuh barangnya, dan kostum serta dekorasi
   album ikut tersimpan
 

@@ -38,17 +38,30 @@ keluarga yang hidup sendiri, menjelajah kota, dan saling melindungi saat keadaan
 Dipindah ke v1.2: ekspresi wajah dengan shape key dan sinkronisasi bibir sungguhan, pakaian yang
 berganti otomatis per musim.
 
-## Fase 3 — Dunia yang lebih hidup (v1.2)
+## Fase 3 — Dunia yang lebih hidup ✅ (v1.2)
 
-- Ekspresi wajah (shape key: senyum, sedih, takut) dan sinkronisasi bibir untuk suara
-- Pakaian yang berganti otomatis per musim dan cuaca
+- Wajah & bahasa tubuh: tulang **Jaw** di semua rig (ThreeNet 0.7 belum punya morph target), mulut
+  bergerak saat berbicara; pose **Happy** dan **Sad** mengikuti suasana hati; pose lama (membaca,
+  memasak, berlari) diperbaiki agar kepala menunduk dan badan condong dengan benar
+- Musim hujan & kemarau, hari libur nasional (Tahun Baru, Hari Buruh, Pancasila, 17 Agustus, Natal),
+  libur semester, Hari Kartini, Hari Anak, Sumpah Pemuda, Hari Guru, Hari Ibu
+- Pakaian otomatis menurut cuaca: topi hujan saat hujan, topi jerami saat terik di musim kemarau
+- Tetangga dengan jadwal sendiri (sekolah, belanja, taman, klinik) dan persahabatan; Dimas datang
+  ke rumah saat sudah berteman baik
+- Festival kota bulanan & 17 Agustus di taman: lomba makan kerupuk, tarik tambang, jajanan, lempar
+  gelang, dan kembang api pukul 20:00
+- Transportasi: mobil bersama Ayah (paling cepat) dan angkot, selain jalan kaki/sepeda
+- Liburan menginap: tidur di tenda di bumi perkemahan atau di penginapan pantai
+- 3 pencapaian baru: Bintang Festival, Liburan Menginap, Tetangga Baik
 
-- Tetangga dengan jadwal sendiri, persahabatan anak-anak dengan teman sekolah
-- Rumah dua lantai dengan tangga, loteng, balkon
-- Kendaraan: naik mobil bersama Ayah, sepeda yang bisa dikendarai, transportasi umum
-- Festival kota dengan mini-game (lomba makan kerupuk, tarik tambang, kembang api)
-- Liburan menginap beberapa hari (pantai, gunung) dengan kenangan khusus
-- Musim hujan & kemarau, hari libur nasional, kalender yang lebih kaya
+Dipindah ke v1.3: rumah dua lantai (tangga, loteng, balkon), sinkronisasi bibir dari suara
+sungguhan, ekspresi wajah dengan morph target saat ThreeNet mendukungnya.
+
+## Fase 3b — Rumah bertingkat (v1.3)
+
+- Rumah dua lantai dengan tangga, loteng dan balkon
+- Ekspresi wajah dengan morph target dan sinkronisasi bibir dari amplitudo suara
+- Sepeda yang terlihat saat dikendarai, halte angkot di kota
 
 ## Fase 4 — Platform & komunitas (v2.0)
 

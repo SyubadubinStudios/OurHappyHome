@@ -27,6 +27,8 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 | ![Memasak](docs/images/07-cooking-minigame.png) | ![Album](docs/images/19-family-album.png) |
 | **Baru v1.1: ruang kelas yang bisa dimasuki** | **Baru v1.1: kostum keluarga** |
 | ![Ruang kelas](docs/images/24-interior-classroom.png) | ![Kostum](docs/images/27-family-costumes.png) |
+| **Baru v1.2: festival kota** | **Baru v1.2: tarik tambang** |
+| ![Festival](docs/images/31-festival-park.png) | ![Tarik tambang](docs/images/33-tug-of-war.png) |
 
 ---
 
@@ -62,6 +64,12 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
   kebakaran, tim SAR, anjing, kucing, monyet dan ular, semuanya model Rodin yang dianimasikan lewat Blender.
 - **Kenangan dan Album Keluarga** yang otomatis memotret momen penting, dengan bingkai dan stiker.
 - **Kostum & topi** untuk seluruh keluarga: topi pesta, topi jerami, kupluk, mahkota dan telinga kucing.
+  Keluarga juga memakai topi hujan sendiri saat hujan.
+- **Musim hujan & kemarau, hari libur nasional, libur semester**, Hari Anak, Hari Ibu dan Hari Guru.
+- **Festival kota** dengan lomba makan kerupuk, tarik tambang dan kembang api.
+- **Tetangga dengan jadwal dan persahabatan**, termasuk teman sekelas yang datang mengajak main.
+- **Naik mobil bersama Ayah atau angkot**, dan **liburan menginap** di tenda atau penginapan pantai.
+- **Bahasa tubuh**: karakter melompat kecil saat senang, menunduk saat sedih, dan mulutnya bergerak saat bicara.
 - **5 bab cerita** (Rumah Kecil Kita sampai Petualangan Besar), lalu mode bebas, ditambah 11 pencapaian.
 - **Efek visual**: bayangan, bloom, SSAO, partikel (hujan, asap, api, uap, hati, konfeti, kembang api),
   kilat, dinding yang turun otomatis saat di dalam rumah, dan pintu yang membuka sendiri.
@@ -121,6 +129,9 @@ make sure **nobody gets left behind** when emergencies strike.
   Behind* restart.
 - **Enterable classroom, supermarket and clinic**, animated **neighbours, visitors and pets**, and a
   **dress-up box** of hats and costumes.
+- **Seasons, national holidays and school breaks**, a monthly **town festival** (cracker eating contest,
+  tug of war, fireworks), **neighbour schedules and friendships**, **car and angkot travel**, **overnight
+  trips**, and mood-driven **body language** with talking mouths.
 - **Cozy and Adventure modes**, an explorable **town**, a **family album** of auto-captured photos with frames and stickers,
   **5 chapters** plus a sandbox, and **11 achievements**.
 - **Effects, procedural music, sound effects and voices**, all of the **accessibility options** from the

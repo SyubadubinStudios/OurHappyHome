@@ -300,7 +300,7 @@ public sealed partial class GameScreen
         _date.Text = $"{Session.Date} · {Loc.T("Hari", "Day")} {Session.Clock.DayIndex + 1}";
         _clock.Text = Session.Clock.TimeText;
         WeatherState w = state.Weather;
-        _weather.Text = $"{WeatherState.Icon(w.Current, Session.Clock.IsNight)} {WeatherState.Name(w.Current)} · {w.Temperature:0}°C · {Loc.T("Besok", "Tmrw")} {WeatherState.Icon(w.Forecast)}";
+        _weather.Text = $"{WeatherState.Icon(w.Current, Session.Clock.IsNight)} {WeatherState.Name(w.Current)} · {w.Temperature:0}°C · {Loc.T("Besok", "Tmrw")} {WeatherState.Icon(w.Forecast)} · {OurHappyHome.Core.Time.Seasons.Icon(Session.Date.Season)}";
         _money.Text = $"💰 {Loc.Money(state.Wallet.Money)}";
         RebuildSpeeds();
         _pauseBadge.Text = _pausedByPlayer ? Loc.T("⏸ DIJEDA (Spasi)", "⏸ PAUSED (Space)") : Session.AllAsleep ? Loc.T("💤 Semua tidur… waktu dipercepat", "💤 Everyone's asleep… fast forward") : "";

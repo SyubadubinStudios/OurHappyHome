@@ -1,4 +1,5 @@
 using System.Numerics;
+using OurHappyHome.Core;
 using OurHappyHome.Core.Simulation;
 using OurHappyHome.Core.World;
 using ThreeNet;
@@ -28,6 +29,9 @@ public sealed class TownView
     private readonly List<(Node Node, Vector2 Center)> _campfires = [];
     private readonly List<Node> _windowsAtNight = [];
     private Node? _campLight;
+    private readonly Node _festival;
+    private readonly List<Node> _lanterns = [];
+    private bool _festivalShown = true;
     private float _time;
     private bool _night;
 
@@ -39,6 +43,7 @@ public sealed class TownView
         _models = models;
         _effects = effects;
         _root = scene.CreateNode(null, "town");
+        _festival = scene.CreateNode(_root, "festival");
 
         Material ground = _scene.CreateMaterial(_t.Grass.Options with { UvScale = new Vector2(70f, 70f) });
         Rect b = WorldMap.Bounds;
@@ -462,6 +467,21 @@ public sealed class TownView
                     break;
                 }
 
+            case FeatureKind.FestivalStall:
+                FestivalStall(f, color);
+                break;
+            case FeatureKind.Inn:
+                NeighbourHouse(f, color);
+                {
+                    Node sign = _m.Box(_root, new Vector3(c.X, f.Height + 1.9f, a.Z0 - 0.4f), new Vector3(4.5f, 0.9f, 0.08f), _t.Sign(f.Label, AColor.Parse("#2A9D8F"), AColor.Parse("#FFFFFF")));
+                    sign.EulerAngles = new Vector3(0f, MathF.PI, 0f);
+                    sign.CastShadow = false;
+                }
+
+                break;
+            case FeatureKind.FestivalStage:
+                FestivalGrounds(f);
+                break;
             case FeatureKind.ClinicBed:
                 _m.Block(_root, c.X, c.Y, 0f, new Vector3(a.Width, f.Height - 0.15f, a.Depth), _t.Solid("#B8C4CC", 0.4f, 0.5f));
                 _m.Block(_root, c.X, c.Y, f.Height - 0.15f, new Vector3(a.Width - 0.05f, 0.15f, a.Depth - 0.05f), color);
@@ -472,6 +492,98 @@ public sealed class TownView
                 _m.Cylinder(_root, new Vector3(c.X, 0.2f, c.Y), a.Width * 0.35f, 0.4f, _t.Solid("#C2703D", 0.8f), true);
                 _m.Sphere(_root, new Vector3(c.X, 0.4f + ((f.Height - 0.4f) * 0.5f), c.Y), new Vector3(a.Width, f.Height - 0.4f, a.Depth), color, true);
                 break;
+        }
+    }
+
+    private void FestivalStall(TownFeature f, Material awning)
+    {
+        Rect a = f.Area;
+        Vector2 c = a.Center;
+        Node stall = _scene.CreateNode(_festival, "stall");
+        stall.Position = new Vector3(c.X, 0f, c.Y);
+        Material wood = _t.Solid("#A0703F", 0.8f);
+        _m.Block(stall, 0f, 0f, 0f, new Vector3(a.Width, 0.95f, a.Depth * 0.6f), _t.Solid("#F5EBDD", 0.7f));
+        foreach ((float x, float z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
+        {
+            _m.Block(stall, x * ((a.Width / 2f) - 0.08f), z * ((a.Depth / 2f) - 0.08f), 0f, new Vector3(0.1f, f.Height, 0.1f), wood);
+        }
+
+        // Striped awning.
+        for (int i = 0; i < 6; i++)
+        {
+            Material stripe = i % 2 == 0 ? awning : _t.Solid("#FFFFFF", 0.7f);
+            Node strip = _m.Box(stall, new Vector3((-a.Width / 2f) + ((i + 0.5f) * a.Width / 6f), f.Height + 0.1f, 0f), new Vector3(a.Width / 6f, 0.06f, a.Depth + 0.4f), stripe);
+            strip.EulerAngles = new Vector3(0.12f, 0f, 0f);
+        }
+
+        string sign = f.Label switch
+        {
+            "kerupuk" => Loc.T("Lomba Kerupuk", "Cracker Contest"),
+            "tug" => Loc.T("Tarik Tambang", "Tug of War"),
+            "food" => Loc.T("Kerak Telor", "Street Food"),
+            _ => Loc.T("Mainan & Hadiah", "Toys & Prizes"),
+        };
+        Node board = _m.Box(stall, new Vector3(0f, f.Height + 0.5f, (a.Depth / 2f) + 0.2f), new Vector3(a.Width * 0.8f, 0.45f, 0.05f), _t.Sign(sign, AColor.Parse(f.Color), AColor.Parse("#FFFFFF")));
+        board.CastShadow = false;
+        string goods = f.Label switch { "kerupuk" => "#F2D7A0", "food" => "#E9C46A", "toys" => "#FF5DA2", _ => "#C49A6C" };
+        for (int i = 0; i < 5; i++)
+        {
+            _m.Sphere(stall, new Vector3(-1f + (i * 0.5f), 1.05f, 0.1f), new Vector3(0.25f, 0.15f, 0.25f), _t.Solid(goods, 0.6f), true);
+        }
+    }
+
+    /// <summary>Contest ground with rope and flags, bunting over the lawn and paper lanterns.</summary>
+    private void FestivalGrounds(TownFeature f)
+    {
+        Rect a = f.Area;
+        Vector2 c = a.Center;
+        _m.Ground(_festival, new Vector3(c.X, 0.04f, c.Y), a.Size, _t.Solid("#D9C9A3", 0.95f), "festival-ground");
+        Node rope = _m.Cylinder(_festival, new Vector3(c.X, 0.12f, c.Y), 0.04f, a.Width - 1f, _t.Solid("#C8A165", 0.9f), true);
+        rope.EulerAngles = new Vector3(0f, 0f, MathF.PI / 2f);
+        Node mid = _m.Box(_festival, new Vector3(c.X, 0.14f, c.Y), new Vector3(0.06f, 0.1f, 0.4f), _t.Solid("#E63946", 0.5f));
+        mid.CastShadow = false;
+
+        // Red and white flags on poles around the ground.
+        for (int i = 0; i < 6; i++)
+        {
+            float x = c.X - 10f + (i * 4f);
+            float z = c.Y - 5f;
+            _m.Cylinder(_festival, new Vector3(x, 1.6f, z), 0.04f, 3.2f, _t.Solid("#DDDDDD", 0.3f, 0.6f), true);
+            _m.Box(_festival, new Vector3(x + 0.4f, 2.95f, z), new Vector3(0.75f, 0.25f, 0.03f), _t.Solid("#E63946", 0.6f)).CastShadow = false;
+            _m.Box(_festival, new Vector3(x + 0.4f, 2.7f, z), new Vector3(0.75f, 0.25f, 0.03f), _t.Solid("#FFFFFF", 0.6f)).CastShadow = false;
+        }
+
+        // Bunting: little triangles on strings between poles, over the stalls.
+        string[] colors = ["#E63946", "#FFFFFF", "#F4A261", "#2A9D8F", "#FFD23F"];
+        for (int line = 0; line < 2; line++)
+        {
+            float z = 43.2f + (line * 3.2f);
+            for (int i = 0; i < 28; i++)
+            {
+                float x = -54f + (i * 0.75f);
+                float sag = 0.45f * MathF.Sin(MathF.PI * (i % 14) / 14f);
+                Node flag = _m.Cone(_festival, new Vector3(x, 3.6f - sag, z), 0.16f, 0.32f, _t.Solid(colors[i % colors.Length], 0.6f), pyramid: true);
+                flag.EulerAngles = new Vector3(MathF.PI, 0f, 0f);
+                flag.CastShadow = false;
+            }
+        }
+
+        // Paper lanterns that glow at night.
+        for (int i = 0; i < 10; i++)
+        {
+            Node lantern = _m.Sphere(_festival, new Vector3(-53f + (i * 2.2f), 3.2f, 41.8f), new Vector3(0.35f, 0.45f, 0.35f), _t.Solid(i % 2 == 0 ? "#FF7B54" : "#FFD23F", 0.5f, emissive: 0.2f), true);
+            lantern.CastShadow = false;
+            _lanterns.Add(lantern);
+        }
+    }
+
+    /// <summary>Shows the festival decorations only on festival days.</summary>
+    public void ShowFestival(bool shown)
+    {
+        if (shown != _festivalShown)
+        {
+            _festivalShown = shown;
+            _festival.Visible = shown;
         }
     }
 

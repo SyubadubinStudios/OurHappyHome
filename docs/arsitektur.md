@@ -58,6 +58,18 @@ dan `ExitInterior` memindahkan pemain, rombongan keluarga dan hewan yang mengiku
 di HUD dan hujan ikut menyesuaikan. Titik layanan di dalam (meja guru, kasir, rak, meja dokter) memakai
 pilihan yang sama dengan pintu masuk gedung.
 
+**Kalender & musim** (`Time/Calendar.cs`) — `Seasons` (hujan Oktober–Maret, kemarau April–September),
+`IsPublicHoliday`, `IsSchoolBreak` dan `IsFestivalDay`; `GameDate.IsWorkDay` (Ayah kerja) dan
+`GameDate.IsSchoolDay` (sekolah) memakai keduanya. Hari khusus punya *hook* di `MorningAnnouncements`.
+
+**Tetangga** (`Simulation/Npc.cs`) — setiap NPC punya daftar `NpcStop` (jam, tempat, hari, syarat
+persahabatan). `FollowSchedule` memilih tempat saat ini; perpindahan jauh terjadi di luar layar.
+Persahabatan disimpan di `GameState.Friendships`.
+
+**Festival** — `FestivalStall`/`FestivalStage` di taman, aktif lewat `GameSession.FestivalActive`;
+kembang api dikirim sebagai `EffectEvent` dari `OnMinute` 20:00–20:12. **Perjalanan** memakai
+`TravelMode` (Walk/Car/Angkot) dan **menginap** (`StayOvernight`) memajukan jam ke 07:00 esok hari.
+
 **Skenario** (`Scenarios/`) punya tujuan, aktor (kucing, monyet, ular, babi hutan, orang asing, polisi,
 pemadam, petugas), target interaksi khusus, *hook* (listrik diperbaiki, api padam, diselamatkan…) dan
 bisa mengarahkan AI keluarga. Skenario besar menyimpan *snapshot* JSON untuk **Ulangi Kejadian**.
@@ -79,7 +91,9 @@ bisa mengarahkan AI keluarga. Skenario besar menyimpan *snapshot* JSON untuk **U
   **`AnimatedFigure`**: GLB diimpor per instance (klip ThreeNet terikat ke node impornya), dengan
   cadangan mannequin/primitif bila file tidak ada. Pemutar animasi **harus dihentikan sebelum node
   dihapus**, karena ThreeNet memakai ulang id node dan pemutar yang masih berjalan akan menggerakkan
-  node baru.
+  node baru. Ekspresi: ThreeNet 0.7 belum mendukung morph target, jadi wajah memakai tulang **Jaw**
+  (kelas `Jaw`, diputar manual karena tidak ada di klip) dan seluruh tubuh memakai klip Happy/Sad/Scared
+  sesuai suasana hati.
 - **Effects** — partikel billboard (hati, bintang, konfeti, kembang api, asap, uap, api aditif,
   percikan, tepung, daun, zzz, not musik, koin) dan tirai hujan.
 - Pencahayaan: matahari dengan bayangan bertingkat, langit/ambient/kabut mengikuti jam & cuaca,

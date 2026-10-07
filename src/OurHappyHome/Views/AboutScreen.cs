@@ -48,7 +48,7 @@ public sealed class AboutScreen : UserControl, IKeyHandler
             FontSize = Ui.Fs(14),
             TextWrapping = TextWrapping.Wrap,
         });
-        about.Children.Add(new TextBlock { Text = Loc.T("Versi 1.1 · .NET 10 · Avalonia · ThreeNet", "Version 1.1 · .NET 10 · Avalonia · ThreeNet"), Foreground = Ui.B("#CDBBA8"), FontSize = Ui.Fs(12) });
+        about.Children.Add(new TextBlock { Text = Loc.T("Versi 1.2 · .NET 10 · Avalonia · ThreeNet", "Version 1.2 · .NET 10 · Avalonia · ThreeNet"), Foreground = Ui.B("#CDBBA8"), FontSize = Ui.Fs(12) });
         about.Children.Add(Ui.Stack(10, Orientation.Horizontal,
             Ui.Button(Loc.T("Kembali", "Back"), Back, icon: "◀"),
             Ui.Ghost(Loc.T("Jeda / lanjut kredit", "Pause / resume credits"), () => _paused = !_paused, "⏯")));
@@ -114,7 +114,7 @@ public sealed class AboutScreen : UserControl, IKeyHandler
         Heading(Loc.T("SENI, KONSEP & MODEL 3D", "ART, CONCEPTS & 3D MODELS"));
         Line(Loc.T("Concept art & ilustrasi: Nano Banana 2 / Qwen Image via Rodin MCP", "Concept art & illustrations: Nano Banana 2 / Qwen Image via Rodin MCP"), 15, "#F6EDE3", FontWeight.Normal);
         Line(Loc.T("Model 3D keluarga, hewan & perabot: Rodin (Hyper3D)", "Family, pet & furniture 3D models: Rodin (Hyper3D)"), 15, "#F6EDE3", FontWeight.Normal);
-        Line(Loc.T("Rigging & 12 animasi karakter: Blender 5.2 (Blender MCP)", "Rigging & 12 character animations: Blender 5.2 (Blender MCP)"), 15, "#F6EDE3", FontWeight.Normal);
+        Line(Loc.T("Rigging, 14 animasi karakter & rahang bicara: Blender 5.2 (Blender MCP)", "Rigging, 14 character animations & talking jaws: Blender 5.2 (Blender MCP)"), 15, "#F6EDE3", FontWeight.Normal);
         Line(Loc.T("Rig hewan berkaki empat (jalan, duduk, tidur, menggonggong): Blender MCP", "Four-legged pet rigs (walk, sit, sleep, bark): Blender MCP"), 15, "#F6EDE3", FontWeight.Normal);
 
         Heading(Loc.T("SUARA & MUSIK", "SOUND & MUSIC"));

@@ -626,12 +626,38 @@ public sealed partial class GameScreen
     private void ShowMap()
     {
         bool bring = true;
-        Grid map = new() { Width = 820, Height = 560 };
+        Grid map = new() { Width = 820, Height = 470 };
         map.Children.Add(new Border { CornerRadius = new CornerRadius(16), ClipToBounds = true, Child = new Image { Source = Ui.Image("Art/world-map.jpg"), Stretch = Stretch.UniformToFill, Opacity = 0.85 } });
         Canvas pins = new();
         map.Children.Add(pins);
         CheckBox family = new() { IsChecked = true, Content = Ui.Text(Loc.T("Ajak keluarga (perjalanan keluarga)", "Bring the family (family trip)"), 14, weight: FontWeight.SemiBold) };
         family.IsCheckedChanged += (_, _) => bring = family.IsChecked == true;
+
+        // How to get there: on foot, in Dad's car, or by angkot.
+        TravelMode mode = TravelMode.Walk;
+        StackPanel modes = Ui.Stack(8, Orientation.Horizontal);
+        void BuildModes()
+        {
+            modes.Children.Clear();
+            modes.Children.Add(Ui.Text(Loc.T("Naik:", "Go by:"), 14, Ui.Ink, FontWeight.SemiBold));
+            foreach ((TravelMode m, string icon, string label, bool enabled, string? tip) in new (TravelMode, string, string, bool, string?)[]
+            {
+                (TravelMode.Walk, "🚶", Loc.T("Jalan kaki / sepeda", "Walk / cycle"), true, null),
+                (TravelMode.Car, "🚗", Loc.T("Mobil bersama Ayah (paling cepat)", "Dad's car (fastest)"), Session.CanDrive, Loc.T("Butuh mobil di garasi dan Ayah di rumah", "Needs the car in the garage and Dad at home")),
+                (TravelMode.Angkot, "🚐", Loc.T($"Angkot ({Loc.Money(GameSession.AngkotFare)}/orang)", $"Angkot ({Loc.Money(GameSession.AngkotFare)}/person)"), true, null),
+            })
+            {
+                TravelMode chosen = m;
+                bool selected = mode == m;
+                modes.Children.Add(Ui.Button(label, () =>
+                {
+                    mode = chosen;
+                    BuildModes();
+                }, selected ? "#4CAF50" : "#FFF1DE", selected ? "#FFFFFF" : "#5A4636", 12.5, icon, enabled, tip));
+            }
+        }
+
+        BuildModes();
 
         foreach (Place place in Session.Map.Places.Where(p => p.Id != PlaceId.Neighborhood))
         {
@@ -666,7 +692,7 @@ public sealed partial class GameScreen
             pin.PointerPressed += (_, _) =>
             {
                 Audio.Play("whoosh");
-                Session.Travel(place.Id, bring && place.Id != PlaceId.Home);
+                Session.Travel(place.Id, bring && place.Id != PlaceId.Home, mode);
                 _renderer?.Rig.Snap(new System.Numerics.Vector3(place.Entrance.X, 1f, place.Entrance.Y));
                 if (_renderer is not null)
                 {
@@ -676,11 +702,15 @@ public sealed partial class GameScreen
                 _window.Transition(() => { });
             };
             Canvas.SetLeft(pin, (x * 820) - 50);
-            Canvas.SetTop(pin, (y * 560) - 14);
+            Canvas.SetTop(pin, (y * 470) - 14);
             pins.Children.Add(pin);
         }
 
-        StackPanel body = Ui.Stack(10, Orientation.Vertical, map, family,
+        WrapPanel options = new() { Orientation = Orientation.Horizontal };
+        family.Margin = new Thickness(0, 0, 18, 6);
+        options.Children.Add(family);
+        options.Children.Add(modes);
+        StackPanel body = Ui.Stack(10, Orientation.Vertical, map, options,
             Ui.Text(Loc.T("Tip: kamu juga bisa berjalan atau bersepeda ke mana saja. Perjalanan keluarga membuat kenangan!", "Tip: you can also walk or cycle anywhere. Family trips create memories!"), 12.5, Ui.Muted, wrap: true));
         ShowModal(Ui.Modal("🗺", Loc.T("Peta Kota", "Town Map"), body, ClosePanel, 880, 720));
     }

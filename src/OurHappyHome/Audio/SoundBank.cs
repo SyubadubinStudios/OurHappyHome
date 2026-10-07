@@ -59,6 +59,10 @@ public static class SoundBank
         s["door"] = Sequence((s["creak"], 0f), (Knock(r), 0.55f));
         s["page"] = Noise(0.2f, r, 0.6f, t => MathF.Sin(MathF.PI * t / 0.2f), 0.2f);
         s["pop"] = Declick(Sweep(400, 1200, 0.08f, Sine, 0.4f));
+        s["firework"] = Sequence(
+            (Declick(Sweep(500, 1600, 0.7f, Sine, 0.06f)), 0f),
+            (Noise(1.4f, r, 0.04f, t => MathF.Exp(-t * 3f), 0.9f), 0.7f),
+            (Noise(1.0f, r, 0.7f, t => MathF.Exp(-t * 3.5f) * (0.5f + (0.5f * MathF.Sin(t * 70f))), 0.25f), 0.8f));
         s["whoosh"] = Noise(0.4f, r, 0.3f, t => MathF.Sin(MathF.PI * t / 0.4f), 0.4f);
         s["wrong"] = Sequence((Tone(220f, 0.18f, Adsr(0.01f, 0.05f, 0.7f, 0.05f, 0.14f), Square).Select(v => v * 0.12f).ToArray(), 0f), (Tone(180f, 0.3f, Adsr(0.01f, 0.05f, 0.7f, 0.1f, 0.22f), Square).Select(v => v * 0.12f).ToArray(), 0.16f));
         s["correct"] = Sequence((Bell(84, 0.25f, 1f), 0f), (Bell(91, 0.4f, 1f), 0.08f));

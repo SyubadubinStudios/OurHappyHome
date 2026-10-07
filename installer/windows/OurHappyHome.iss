@@ -1,7 +1,7 @@
 ; Our Happy Home - Inno Setup 6 script (compiled by build-windows.ps1 when ISCC is available).
 ; Dibuat oleh Ariana Mischa Fadhila dari Syubadubin Studios.
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.2.0"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\..\artifacts\publish\win-x64"

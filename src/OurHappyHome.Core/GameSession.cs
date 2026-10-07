@@ -218,7 +218,7 @@ public sealed partial class GameSession
             case 7 * 60 + 15 when date.IsSchoolDay:
                 SendChildrenToSchool();
                 break;
-            case 8 * 60 when date.IsSchoolDay:
+            case 8 * 60 when date.IsWorkDay:
                 SendToWork(MemberId.Father, 16.5f);
                 break;
             case 9 * 60 when date.Weekday == Weekday.Saturday:
@@ -233,10 +233,21 @@ public sealed partial class GameSession
             case 19 * 60 + 30:
                 EveningAnnouncements(date);
                 break;
+            case 15 * 60 when Calendar.IsFestivalDay(date):
+                Bus.Notice(Loc.T("Festival di taman kota sudah buka! Ajak keluarga ke sana (peta M).", "The festival in the park is open! Take the family there (map M)."), "🎪", NoticeKind.Good);
+                break;
+            case >= 20 * 60 and <= 20 * 60 + 12 when Calendar.IsFestivalDay(date):
+                Fireworks(minuteOfDay - (20 * 60));
+                break;
             case 7 * 60:
             case 18 * 60 + 45:
                 CallFamilyToTable(State.Members.FirstOrDefault(m => m.Id == MemberId.Mother && !m.Away));
                 break;
+        }
+
+        if (minuteOfDay % 10 == 0)
+        {
+            AutoDress();
         }
 
         foreach (FamilyMember member in State.Members)
@@ -248,11 +259,88 @@ public sealed partial class GameSession
         }
     }
 
+    /// <summary>The festival is on from 15:00 to 22:00 on festival days.</summary>
+    public bool FestivalActive => Calendar.IsFestivalDay(Date) && Hour is >= 15f and < 22f;
+
+    /// <summary>Fireworks over the park; whoever is there gets a memory.</summary>
+    private void Fireworks(int step)
+    {
+        Vector2 c = WorldMap.FestivalCenter;
+        for (int i = 0; i < 2; i++)
+        {
+            // The effect itself launches the shells 8-14 m higher.
+            Vector2 p = c + new Vector2(Random.Range(-10f, 10f), Random.Range(-6f, 8f));
+            Bus.Publish(new EffectEvent(EffectKind.Fireworks, new Vector3(p.X, Random.Range(-4f, -1f), p.Y), Random.Range(0.6f, 1.1f)));
+        }
+
+        Bus.Sound("firework", new Vector3(c.X, 15f, c.Y), 1f);
+        List<MemberId> watching = [.. State.Members.Where(m => !m.Away && Vector2.Distance(m.Position, c) < 45f).Select(m => m.Id)];
+        foreach (MemberId id in watching)
+        {
+            FamilyMember m = State.Member(id);
+            m.Needs.Add(NeedKind.Fun, 6);
+            m.Mood.Add("fireworks", Loc.T("Kembang api!", "Fireworks!"), 12, MoodKind.Excited, Now, 120);
+        }
+
+        if (step == 0 && watching.Count >= 2)
+        {
+            Bus.Publish(new MusicEvent(MusicMood.Celebration));
+            CreateMemory(Loc.T("Kembang api di festival", "Fireworks at the festival"),
+                Loc.T("Langit malam penuh warna. Semua menengadah sambil berseru \"Wah!\"", "The night sky filled with colour. Everyone looked up and said \"Wow!\""),
+                MemoryKind.Trip, EmotionalOutcome.Joyful, watching, WorldMap.Name(PlaceId.Park), 3f, $"fireworks:{Clock.DayIndex}");
+        }
+    }
+
+    /// <summary>Members who are not in a chosen costume dress for the weather when outside.</summary>
+    private void AutoDress()
+    {
+        WeatherState weather = State.Weather;
+        bool sunny = weather.Current == WeatherKind.Sunny && Date.Season == Season.Dry && Hour is >= 9f and < 16f;
+        foreach (FamilyMember m in State.Members.Where(m => m.AccessoryAuto && !m.Away))
+        {
+            bool outside = !IsIndoors(m.Position);
+            string? want = !outside ? null
+                : weather.IsRaining && State.Inventory.Has("rain-hat") ? "rain-hat"
+                : sunny && State.Inventory.Has("straw-hat") ? "straw-hat"
+                : null;
+            m.Accessory = want;
+        }
+    }
+
     private void MorningAnnouncements(GameDate date)
     {
+        if (date.Day == 1 && (date.Month == 4 || date.Month == 10))
+        {
+            Season season = Seasons.Of(date);
+            Bus.Notice(Loc.T($"{Seasons.Name(season)} dimulai!", $"The {Seasons.Name(season).ToLowerInvariant()} begins!"), Seasons.Icon(season), NoticeKind.Info);
+        }
+
         foreach (CalendarEvent e in Calendar.EventsOn(date))
         {
             Bus.Notice(Loc.T($"Hari ini: {e.Title}", $"Today: {e.Title}"), e.Icon, NoticeKind.Info);
+            switch (e.Kind)
+            {
+                case CalendarEventKind.ChildrensDay:
+                    {
+                        string[] presents = ["toy-car", "doll", "storybook", "sketchbook", "ball"];
+                        foreach ((MemberId kid, int i) in FamilyNames.Children.Select((k, i) => (k, i)))
+                        {
+                            FamilyMember child = State.Member(kid);
+                            child.Mood.Add("childrens-day", Loc.T("Hari Anak! Dapat kejutan!", "Children's Day surprise!"), 15, MoodKind.Excited, Now, 16 * 60);
+                            State.Inventory.Add(presents[(i + date.Year) % presents.Length]);
+                        }
+
+                        Bus.Notice(Loc.T("Ayah dan Ibu memberi hadiah untuk anak-anak! Lihat di Barang.", "Mom and Dad gave the children presents! Check your items."), "🎁", NoticeKind.Good);
+                        CreateMemory(Loc.T("Hari Anak Nasional", "National Children's Day"), Loc.T("Pagi-pagi ada kado kejutan dari Ayah dan Ibu di meja makan.", "Surprise presents from Mom and Dad waited on the breakfast table."),
+                            MemoryKind.Gift, EmotionalOutcome.Joyful, FamilyNames.All, LocationName(State.Member(MemberId.Mother)), 2.5f, $"childrens-day:{date.DayIndex}");
+                        break;
+                    }
+
+                case CalendarEventKind.MothersDay:
+                    State.Member(MemberId.Mother).Mood.Add("mothers-day", Loc.T("Hari Ibu", "Mother's Day"), 10, MoodKind.Happy, Now, 16 * 60);
+                    break;
+            }
+
             if (e.Kind == CalendarEventKind.Birthday && e.Member is { } who)
             {
                 foreach (FamilyMember m in State.Members.Where(m => m.Id != who))

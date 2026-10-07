@@ -20,7 +20,11 @@ public sealed class AnimatedFigure
     {
         Root = root;
         _clips = clips;
+        Jaw = Jaw.Find(root);
     }
+
+    /// <summary>The un-animated jaw bone used for talking, if the rig has one.</summary>
+    public Jaw? Jaw { get; }
 
     /// <summary>The scaled model node; the caller positions its parent.</summary>
     public Node Root { get; }
@@ -128,5 +132,59 @@ public sealed class AnimatedFigure
             _previous.Stop();
             _previous = null;
         }
+    }
+}
+
+/// <summary>
+/// The jaw bone of a rig. ThreeNet has no morph targets, so talking is shown by
+/// opening the jaw: the rig scripts leave it out of every clip and the game
+/// rotates it around its own X axis.
+/// </summary>
+public sealed class Jaw
+{
+    private const float MaxAngle = -0.2f;
+    private readonly Node _node;
+    private readonly Quaternion _rest;
+    private float _open;
+
+    private Jaw(Node node)
+    {
+        _node = node;
+        _rest = node.Rotation;
+    }
+
+    public static Jaw? Find(Node root)
+    {
+        Stack<Node> stack = new([root]);
+        while (stack.Count > 0)
+        {
+            Node node = stack.Pop();
+            if (node.Name == "Jaw")
+            {
+                return new Jaw(node);
+            }
+
+            foreach (Node child in node.Children)
+            {
+                stack.Push(child);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Chatters while <paramref name="talking"/> (syllable-like rhythm), otherwise eases shut.</summary>
+    public void Update(bool talking, float time, float dt, float agape = 0f)
+    {
+        float target = agape;
+        if (talking)
+        {
+            float syllable = MathF.Max(0f, MathF.Sin(time * 17f));
+            float phrase = 0.55f + (0.45f * MathF.Sin(time * 5.3f));
+            target = MathF.Max(agape, syllable * phrase);
+        }
+
+        _open += (target - _open) * MathF.Min(1f, dt * 25f);
+        _node.Rotation = _rest * Quaternion.CreateFromAxisAngle(Vector3.UnitX, _open * MaxAngle);
     }
 }

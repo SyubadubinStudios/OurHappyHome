@@ -460,6 +460,56 @@ public sealed partial class GameSession
                     break;
                 }
 
+            case "kerupuk":
+                {
+                    State.AddStat(Stat.FestivalGames);
+                    m.Needs.Add(NeedKind.Fun, 25);
+                    m.Needs.Add(NeedKind.Hunger, 10);
+                    bool won = score >= 0.99f;
+                    if (won)
+                    {
+                        State.Wallet.Earn(50_000, Loc.T("Juara lomba makan kerupuk", "Cracker contest prize"), Clock.DayIndex, true);
+                        Bus.Effect(EffectKind.Confetti, m.Position, 2f);
+                        Bus.Sound("fanfare");
+                    }
+
+                    CreateMemory(won ? Loc.T("Juara makan kerupuk!", "Cracker eating champion!") : Loc.T("Lomba makan kerupuk", "The cracker eating contest"),
+                        won ? Loc.T($"{m.Name} menghabiskan kerupuk paling cepat tanpa pakai tangan!", $"{m.Name} finished the cracker first, no hands allowed!")
+                            : Loc.T($"{m.Name} tertawa sampai remah kerupuk berjatuhan.", $"{m.Name} laughed so hard the cracker crumbs flew everywhere."),
+                        MemoryKind.Play, EmotionalOutcome.Joyful, [m.Id, .. State.Party], WorldMap.Name(PlaceId.Park), won ? 2.5f : 1.5f, $"kerupuk:{Clock.DayIndex}");
+                    break;
+                }
+
+            case "tug":
+                {
+                    State.AddStat(Stat.FestivalGames);
+                    List<MemberId> team = [m.Id, .. State.Party];
+                    bool won = score >= 0.5f;
+                    foreach (FamilyMember member in State.Members.Where(x => team.Contains(x.Id)))
+                    {
+                        member.Needs.Add(NeedKind.Fun, 25);
+                        member.Needs.Add(NeedKind.Social, 20);
+                        member.Stamina.Value -= 12;
+                        foreach (MemberId other in team.Where(o => o != member.Id))
+                        {
+                            State.Relationships.Change(member.Id, other, 3f);
+                        }
+                    }
+
+                    if (won)
+                    {
+                        State.Wallet.Earn(75_000, Loc.T("Juara tarik tambang", "Tug of war prize"), Clock.DayIndex, true);
+                        Bus.Effect(EffectKind.Confetti, m.Position, 2.5f);
+                        Bus.Sound("fanfare");
+                    }
+
+                    CreateMemory(won ? Loc.T("Menang tarik tambang!", "Tug of war winners!") : Loc.T("Tarik tambang bersama", "Tug of war together"),
+                        won ? Loc.T("Satu, dua, tarik! Tim keluarga kita menang dan jatuh terduduk sambil tertawa.", "One, two, pull! Our family team won and landed laughing in the grass.")
+                            : Loc.T("Kalah tipis, tapi semua tertawa bersama di rumput.", "We lost by a whisker, but everyone laughed together in the grass."),
+                        MemoryKind.Play, won ? EmotionalOutcome.Proud : EmotionalOutcome.Joyful, team, WorldMap.Name(PlaceId.Park), team.Count >= 3 ? 3f : 2f, $"tug:{Clock.DayIndex}");
+                    break;
+                }
+
             case "arcade":
                 {
                     m.Needs.Add(NeedKind.Fun, 30 * score + 10);
@@ -642,14 +692,23 @@ public sealed partial class GameSession
             return memory.Tag["together:".Length..];
         }
 
-        string[] options = morning ? ["fried-rice", "eggs", "pancakes"] : ["fried-rice", "chicken", "soup", "eggs", "salad"];
+        string[] options = morning
+            ? ["fried-rice", "eggs", "pancakes", "bubur-ayam", "mie-goreng"]
+            : ["fried-rice", "chicken", "soup", "eggs", "salad", "mie-goreng", "gado-gado"];
         List<string> possible = [.. options.Where(o => Recipes.Get(o).CanMake(State.Inventory) && Recipes.Get(o).MinSkill <= m.Skills[SkillKind.Cooking] + 1.5f)];
         if (m.Id == MemberId.Mother && Random.Chance(0.25f) && Recipes.Get("cupcakes").CanMake(State.Inventory))
         {
             return "cupcakes";
         }
 
-        return possible.Count > 0 ? Random.Pick(possible) : "eggs";
+        if (possible.Count > 0)
+        {
+            return Random.Pick(possible);
+        }
+
+        // Anything everyday that the kitchen can still make (never a dish that will fail).
+        return Recipes.All.Where(r => !r.IsDrink && !r.GrillOnly && !r.Celebration && r.CanMake(State.Inventory))
+            .OrderBy(r => r.MinSkill).Select(r => r.Id).FirstOrDefault() ?? "eggs";
     }
 
     private void ServeWarmDrinks(FamilyMember maker)

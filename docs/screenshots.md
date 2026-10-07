@@ -56,6 +56,18 @@ skenario otomatis lewat jalur kode yang sama dengan pemain.
 
 Album keluarga (gambar 19) sekarang punya bingkai (klasik, kayu, pastel, emas, film) dan stiker.
 
+## Baru di v1.2
+
+| Dimas datang ke rumah mengajak main | Topi hujan otomatis saat hujan |
+|---|---|
+| ![](images/29-dimas-visit.png) | ![](images/30-rainy-day-hats.png) |
+| **Festival kota di taman** | **Lomba makan kerupuk** |
+| ![](images/31-festival-park.png) | ![](images/32-kerupuk-minigame.png) |
+| **Tarik tambang keluarga** | **Kembang api festival** |
+| ![](images/33-tug-of-war.png) | ![](images/34-festival-fireworks.png) |
+| **Pagi setelah menginap di tenda** | **Peta dengan pilihan kendaraan** |
+| ![](images/35-camping-morning.png) | ![](images/18-town-map.png) |
+
 ## Seni & aset
 
 | Concept art keluarga | Interior rumah |

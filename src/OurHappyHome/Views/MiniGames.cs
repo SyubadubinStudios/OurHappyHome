@@ -45,6 +45,23 @@ public sealed partial class GameScreen
                     break;
                 }
 
+            case "kerupuk":
+                {
+                    KerupukGame kerupuk = new(Session.Controlled.Name, Audio, score => FinishMiniGame(() => Session.CompleteMiniGame(score)));
+                    game = kerupuk;
+                    _miniGame = kerupuk;
+                    break;
+                }
+
+            case "tug":
+                {
+                    int team = int.TryParse(request.Argument, out int n) ? n : 1;
+                    TugOfWarGame tug = new(team, Audio, score => FinishMiniGame(() => Session.CompleteMiniGame(score)));
+                    game = tug;
+                    _miniGame = tug;
+                    break;
+                }
+
             case "lemonade":
                 {
                     LemonadeGame lemonade = new(Audio, score => FinishMiniGame(() => Session.CompleteMiniGame(score)));
@@ -827,5 +844,184 @@ public sealed class ArcadeGame : MiniGameBase
         }
 
         _score.Text = Loc.T($"Bintang: {_caught} · Waktu: {_time:0} dtk", $"Stars: {_caught} · Time: {_time:0}s");
+    }
+}
+
+/// <summary>Cracker eating contest: hands behind your back, mash Space to munch faster than the others.</summary>
+public sealed class KerupukGame : MiniGameBase
+{
+    private readonly Action<float> _done;
+    private readonly string[] _names;
+    private readonly float[] _progress = new float[4];
+    private readonly float[] _speed = new float[4];
+    private readonly TextBlock[] _crackers = new TextBlock[4];
+    private readonly Border[] _bars = new Border[4];
+    private readonly TextBlock _status;
+    private readonly Random _random = new();
+    private float _time = 20f;
+    private float _countdown = 3f;
+    private bool _finished;
+
+    public KerupukGame(string player, AudioManager audio, Action<float> done) : base(audio)
+    {
+        _done = done;
+        _names = [player, "Dimas", "Putri", "Bayu"];
+        for (int i = 1; i < 4; i++)
+        {
+            _speed[i] = 0.045f + ((float)_random.NextDouble() * 0.03f);
+        }
+
+        TextBlock title = Ui.Title(Loc.T("🍘 Lomba Makan Kerupuk", "🍘 Cracker Eating Contest"), 26);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        Body.Children.Add(title);
+        Body.Children.Add(Ui.Text(Loc.T("Tangan di belakang! Tekan Spasi (atau tombol) secepatnya untuk menggigit kerupuk.", "Hands behind your back! Press Space (or the button) as fast as you can to munch."), 14, Ui.Muted, wrap: true));
+        for (int i = 0; i < 4; i++)
+        {
+            _crackers[i] = Ui.Emoji("🍘", 34);
+            _bars[i] = new Border { Height = 14, Width = 0, CornerRadius = new CornerRadius(7), Background = Ui.B(i == 0 ? "#F28C38" : "#B9A89A"), HorizontalAlignment = HorizontalAlignment.Left };
+            Border track = new() { Width = 360, Height = 14, CornerRadius = new CornerRadius(7), Background = Ui.B("#EFE3D3"), Child = _bars[i] };
+            Grid row = Ui.Row((Ui.Text(_names[i], 15, Ui.Ink, i == 0 ? FontWeight.Bold : FontWeight.Normal), new GridLength(110)), (_crackers[i], new GridLength(60)), (track, GridLength.Auto));
+            row.VerticalAlignment = VerticalAlignment.Center;
+            Body.Children.Add(row);
+        }
+
+        _status = Ui.Title("", 18);
+        _status.HorizontalAlignment = HorizontalAlignment.Center;
+        Body.Children.Add(_status);
+        Body.Children.Add(BigButton(Loc.T("Gigit!", "Munch!"), "😋"));
+    }
+
+    protected override void Press()
+    {
+        if (_countdown > 0f || _finished)
+        {
+            return;
+        }
+
+        _progress[0] = MathF.Min(1f, _progress[0] + 0.03f);
+        Audio.Play("pop", gain: 0.35f, pitch: 0.9f + ((float)_random.NextDouble() * 0.3f));
+    }
+
+    protected override void Tick(float dt)
+    {
+        if (_finished)
+        {
+            return;
+        }
+
+        if (_countdown > 0f)
+        {
+            _countdown -= dt;
+            _status.Text = _countdown > 0f ? $"{MathF.Ceiling(_countdown):0}..." : Loc.T("Mulai!", "Go!");
+            return;
+        }
+
+        _time -= dt;
+        for (int i = 1; i < 4; i++)
+        {
+            // The others munch in little bursts.
+            _progress[i] = MathF.Min(1f, _progress[i] + (_speed[i] * dt * (0.5f + (float)_random.NextDouble())));
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            _bars[i].Width = 360 * _progress[i];
+            _crackers[i].RenderTransform = new ScaleTransform(1 - (_progress[i] * 0.85), 1 - (_progress[i] * 0.85));
+        }
+
+        _status.Text = Loc.T($"Waktu: {_time:0} dtk", $"Time: {_time:0}s");
+        if (_progress.Any(p => p >= 1f) || _time <= 0f)
+        {
+            _finished = true;
+            Stop();
+            int rank = 1 + _progress.Skip(1).Count(p => p > _progress[0]);
+            _status.Text = rank == 1 ? Loc.T("🏆 Juara 1!", "🏆 First place!") : Loc.T($"Juara {rank}", $"Place {rank}");
+            Audio.Play(rank == 1 ? "fanfare" : "correct", gain: 0.6f);
+            DispatcherTimer.RunOnce(() => _done(rank switch { 1 => 1f, 2 => 0.6f, 3 => 0.3f, _ => 0.1f }), TimeSpan.FromSeconds(1.6));
+        }
+    }
+}
+
+/// <summary>Tug of war: mash to pull the ribbon to your side; every family member on the team adds strength.</summary>
+public sealed class TugOfWarGame : MiniGameBase
+{
+    private readonly Action<float> _done;
+    private readonly int _team;
+    private readonly Gauge _gauge = new();
+    private readonly TextBlock _status;
+    private readonly Random _random = new();
+    private float _rope = 0.5f;
+    private float _time = 25f;
+    private float _countdown = 3f;
+    private float _burst;
+    private bool _finished;
+
+    public TugOfWarGame(int team, AudioManager audio, Action<float> done) : base(audio)
+    {
+        _done = done;
+        _team = Math.Clamp(team, 1, 5);
+        TextBlock title = Ui.Title(Loc.T("🪢 Tarik Tambang", "🪢 Tug of War"), 26);
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        Body.Children.Add(title);
+        Body.Children.Add(Ui.Text(Loc.T($"Timmu: {_team} orang. Tekan Spasi berulang-ulang untuk menarik pita ke kiri!", $"Your team: {_team}. Mash Space to pull the ribbon to the left!"), 14, Ui.Muted, wrap: true));
+        Grid teams = Ui.Row((Ui.Text(string.Concat(Enumerable.Repeat("💪", _team)) + Loc.T(" Keluarga", " Family"), 16, Ui.Ink, FontWeight.Bold), GridLength.Star),
+            (Ui.Text(Loc.T("Tim Tetangga ", "Neighbours ") + "💪💪💪", 16, Ui.Ink, FontWeight.Bold), GridLength.Auto));
+        Body.Children.Add(teams);
+        _gauge.Zone(0f, 0.2f);
+        Body.Children.Add(_gauge);
+        _status = Ui.Title("", 18);
+        _status.HorizontalAlignment = HorizontalAlignment.Center;
+        Body.Children.Add(_status);
+        Body.Children.Add(BigButton(Loc.T("Tarik!", "Pull!"), "🪢"));
+    }
+
+    protected override void Press()
+    {
+        if (_countdown > 0f || _finished)
+        {
+            return;
+        }
+
+        _rope -= 0.012f + (0.004f * _team);
+        Audio.Play("rope", gain: 0.25f);
+    }
+
+    protected override void Tick(float dt)
+    {
+        if (_finished)
+        {
+            return;
+        }
+
+        if (_countdown > 0f)
+        {
+            _countdown -= dt;
+            _status.Text = _countdown > 0f ? $"{MathF.Ceiling(_countdown):0}..." : Loc.T("Tarik!", "Pull!");
+            _gauge.Marker(_rope);
+            return;
+        }
+
+        _time -= dt;
+        _burst -= dt;
+        float pull = 0.075f + (_burst > 0f ? 0.09f : 0f);
+        if (_burst < -1.5f && _random.NextDouble() < dt)
+        {
+            _burst = 0.8f; // the neighbours heave together
+        }
+
+        _rope = Math.Clamp(_rope + (pull * dt), 0f, 1f);
+        _gauge.Marker(_rope);
+        _gauge.Fill(1f - _rope);
+        _status.Text = Loc.T($"Waktu: {_time:0} dtk", $"Time: {_time:0}s");
+        if (_rope <= 0.2f || _rope >= 0.8f || _time <= 0f)
+        {
+            _finished = true;
+            Stop();
+            bool won = _rope < 0.5f;
+            _status.Text = won ? Loc.T("🏆 Tim keluarga menang!", "🏆 The family team wins!") : Loc.T("Tim tetangga menang. Seru sekali!", "The neighbours win. What fun!");
+            Audio.Play(won ? "fanfare" : "correct", gain: 0.6f);
+            float score = won ? 0.6f + (0.4f * (0.5f - _rope) / 0.3f) : 0.4f * (1f - _rope);
+            DispatcherTimer.RunOnce(() => _done(Math.Clamp(score, 0f, 1f)), TimeSpan.FromSeconds(1.6));
+        }
     }
 }

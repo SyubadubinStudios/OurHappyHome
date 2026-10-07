@@ -100,9 +100,11 @@ public sealed partial class GameSession
         foreach (Npc npc in Npcs)
         {
             float d = Vector2.Distance(npc.Position, p);
-            if (d <= InteractRange && npc.Present(Hour))
+            if (d <= InteractRange && npc.Present)
             {
-                targets.Add(new InteractionTarget($"npc:{npc.Id}", npc.Name, "👋", new Vector3(npc.Position.X, npc.Height + 0.3f, npc.Position.Y), d, NpcOptions(npc)));
+                float friendship = State.Friendship(npc.Id);
+                string title = friendship >= 1f ? $"{npc.Name} · {FriendshipLabel(friendship)}" : npc.Name;
+                targets.Add(new InteractionTarget($"npc:{npc.Id}", title, "👋", new Vector3(npc.Position.X, npc.Height + 0.3f, npc.Position.Y), d, NpcOptions(npc)));
             }
         }
 
@@ -137,7 +139,8 @@ public sealed partial class GameSession
 
         foreach (TownFeature feature in Map.Features)
         {
-            if (feature.Kind is not (FeatureKind.Campfire or FeatureKind.Tent or FeatureKind.FerrisWheel or FeatureKind.Carousel or FeatureKind.Pond or FeatureKind.Playground or FeatureKind.Sand))
+            if (feature.Kind is not (FeatureKind.Campfire or FeatureKind.Tent or FeatureKind.FerrisWheel or FeatureKind.Carousel or FeatureKind.Pond or FeatureKind.Playground or FeatureKind.Sand or FeatureKind.FestivalStall or FeatureKind.Inn)
+                || (feature.Kind == FeatureKind.FestivalStall && !FestivalActive))
             {
                 continue;
             }
@@ -411,6 +414,15 @@ public sealed partial class GameSession
         ItemDef item = ItemCatalog.Get(itemId);
         bool loved = item.Tags.Any(t => other.Personality.Likes.Contains(t));
         float amount = loved ? 10f : 4f;
+        if (to == MemberId.Mother && Time.Calendar.EventsOn(Date).Any(e => e.Kind == Time.CalendarEventKind.MothersDay))
+        {
+            // Mother's Day: any present means the world to Mom.
+            loved = true;
+            amount = 16f;
+            CreateMemory(Loc.T("Hadiah Hari Ibu", "A Mother's Day present"),
+                Loc.T($"{Controlled.Name} memberi Ibu {item.Name} di Hari Ibu. Ibu memeluk erat.", $"{Controlled.Name} gave Mom a {item.Name} for Mother's Day. She hugged them tight."),
+                MemoryKind.Gift, EmotionalOutcome.Heartwarming, [State.Controlled, to], LocationName(other), 3f, $"mothers-day:{Clock.DayIndex}");
+        }
         State.Relationships.Change(State.Controlled, to, amount);
         other.Mood.Add($"gift:{itemId}", Loc.T($"Dapat hadiah {item.Name}", $"Got a {item.Name}"), loved ? 18 : 8, loved ? MoodKind.Excited : MoodKind.Happy, Now, 300);
         State.AddStat(Stat.Gifts);
@@ -728,6 +740,12 @@ public sealed partial class GameSession
                         MemoryKind.Play, EmotionalOutcome.Joyful, [State.Controlled], LocationName(Controlled), 1f, $"npc:{npc.Id}", photo: false);
                 }
 
+                if (!State.Flag($"chat:{npc.Id}:{Clock.DayIndex}"))
+                {
+                    State.Flags.Add($"chat:{npc.Id}:{Clock.DayIndex}");
+                    AddFriendship(npc, 3f);
+                }
+
                 int index = Random.Range(0, npc.LinesId.Length);
                 Bus.Publish(new SpeechEvent(null, npc.Name, npc.Line(index), $"npc_{npc.Id}_{index}"));
                 npc.TalkTo(Controlled.Position);
@@ -744,6 +762,7 @@ public sealed partial class GameSession
                     Controlled.Needs.Add(NeedKind.Hunger, 15);
                     Bus.Notice(Loc.T("Nenek Sari memberi kue kering!", "Grandma Sari gave you cookies!"), "🍪", NoticeKind.Good);
                     State.Flags.Add($"cookies:{Clock.DayIndex}");
+                    AddFriendship(npc, 2f);
                 }, !State.Flag($"cookies:{Clock.DayIndex}")));
                 break;
             case "budi":
@@ -758,8 +777,30 @@ public sealed partial class GameSession
                     State.Wallet.Earn(40_000, Loc.T("Bantu Pak Budi", "Helped Mr. Budi"), Clock.DayIndex, Controlled.IsChild);
                     Practice(Controlled, SkillKind.Building, 0.5f);
                     State.Flags.Add($"budi:{Clock.DayIndex}");
+                    AddFriendship(npc, 5f);
                     Bus.Notice(Loc.T("Pak Budi berterima kasih: +Rp 40.000", "Mr. Budi says thanks: +Rp 40,000"), "🖌", NoticeKind.Money);
                 }, !State.Flag($"budi:{Clock.DayIndex}") && Controlled.Stamina.CanDoDemanding));
+                break;
+            case "teacher" when Time.Calendar.EventsOn(Date).Any(e => e.Kind == Time.CalendarEventKind.TeachersDay):
+                o.Add(new("teacher-flowers", Loc.T("Beri bunga untuk Bu Guru", "Give Ms. Rina flowers"), "💐", () =>
+                {
+                    if (!State.Inventory.Take("flowers"))
+                    {
+                        return;
+                    }
+
+                    State.Flags.Add($"teachers-day:{Clock.DayIndex}");
+                    AddFriendship(npc, 8f);
+                    foreach (MemberId kid in FamilyNames.Children)
+                    {
+                        Practice(State.Member(kid), SkillKind.English, 0.5f);
+                    }
+
+                    Bus.Effect(EffectKind.Hearts, npc.Position, 1.6f);
+                    Bus.Publish(new SpeechEvent(null, npc.Name, Loc.T("Wah, terima kasih! Kalian murid yang baik sekali.", "Oh, thank you! You are such good pupils.")));
+                    CreateMemory(Loc.T("Hari Guru", "Teachers' Day"), Loc.T("Bu Guru Rina tersenyum lebar menerima bunga dari kami.", "Ms. Rina beamed when we gave her flowers."),
+                        MemoryKind.Play, EmotionalOutcome.Heartwarming, [State.Controlled], LocationName(Controlled), 2f, $"teachers-day:{Clock.DayIndex}");
+                }, State.Inventory.Has("flowers") && !State.Flag($"teachers-day:{Clock.DayIndex}"), Loc.T("Beli buket bunga di Mal", "Buy a bouquet at the Mall")));
                 break;
             case "dimas":
                 o.Add(new("football", Loc.T("Main bola bersama", "Play football together"), "⚽", () =>
@@ -774,11 +815,49 @@ public sealed partial class GameSession
                     Controlled.Needs.Add(NeedKind.Social, 25);
                     Practice(Controlled, SkillKind.Sports, 0.8f);
                     Bus.Effect(EffectKind.Stars, Controlled.Position, 1.8f);
+                    AddFriendship(npc, 6f);
+                    if (npc.Stop?.Tag == "visit")
+                    {
+                        CreateMemory(Loc.T("Dimas main ke rumah", "Dimas came over"), Loc.T($"{Controlled.Name} dan Dimas main bola di halaman sampai sore.", $"{Controlled.Name} and Dimas played football in the yard all morning."),
+                            MemoryKind.Play, EmotionalOutcome.Joyful, [State.Controlled], LocationName(Controlled), 1.5f, $"dimas-visit:{Clock.DayIndex}");
+                    }
                 }, Controlled.Stamina.CanDoDemanding));
                 break;
         }
 
         return o;
+    }
+
+    // ------------------------------------------------------------ friendship
+
+    public static string FriendshipLabel(float value) => value switch
+    {
+        >= 60f => Loc.T("Sahabat 💛", "Best friend 💛"),
+        >= 30f => Loc.T("Teman baik", "Good friend"),
+        >= 10f => Loc.T("Teman", "Friend"),
+        _ => Loc.T("Kenalan", "Acquaintance"),
+    };
+
+    private void AddFriendship(Npc npc, float amount)
+    {
+        float before = State.Friendship(npc.Id);
+        float after = Math.Clamp(before + amount, 0f, 100f);
+        State.Friendships[npc.Id] = after;
+        foreach (float milestone in new[] { 30f, 60f })
+        {
+            if (before < milestone && after >= milestone)
+            {
+                Bus.Notice(Loc.T($"{npc.Name} sekarang {FriendshipLabel(after)}!", $"{npc.Name} is now a {FriendshipLabel(after).ToLowerInvariant()}!"), "🤝", NoticeKind.Good);
+                Bus.Effect(EffectKind.Hearts, npc.Position, 1.5f);
+                if (milestone >= 60f)
+                {
+                    State.AddStat(Progression.Stat.BestFriends);
+                    CreateMemory(Loc.T($"Bersahabat dengan {npc.Name}", $"Best friends with {npc.Name}"),
+                        Loc.T($"Keluarga kita dan {npc.Name} kini bersahabat.", $"Our family and {npc.Name} are now the best of friends."),
+                        MemoryKind.Play, EmotionalOutcome.Heartwarming, [State.Controlled], LocationName(Controlled), 2.5f, $"best-friend:{npc.Id}");
+                }
+            }
+        }
     }
 
     // --------------------------------------------------------------- costumes
@@ -793,6 +872,7 @@ public sealed partial class GameSession
         }
 
         m.Accessory = item;
+        m.AccessoryAuto = item is null;
         if (item is not null)
         {
             m.Mood.Add("costume", Loc.T("Kostum baru!", "New costume!"), 6, MoodKind.Happy, Now, 180);
@@ -918,6 +998,73 @@ public sealed partial class GameSession
         return o;
     }
 
+    private void FestivalOptions(TownFeature stall, FamilyMember me, List<MemberId> group, List<InteractionOption> o)
+    {
+        string today = $"{stall.Label}:{Clock.DayIndex}";
+        switch (stall.Label)
+        {
+            case "kerupuk":
+                o.Add(new("kerupuk", Loc.T("Ikut lomba makan kerupuk", "Join the cracker eating contest"), "🍘", () =>
+                {
+                    State.Flags.Add($"fest-{today}");
+                    PendingMiniGame = new MiniGameRequest("kerupuk", "");
+                    Bus.Publish(PendingMiniGame);
+                }, !State.Flag($"fest-{today}") && me.Stamina.CanDoDemanding, Loc.T("Sudah ikut hari ini", "Already played today")));
+                break;
+            case "tug":
+                o.Add(new("tug", Loc.T($"Tarik tambang ({group.Count} orang di timmu)", $"Tug of war ({group.Count} on your team)"), "🪢", () =>
+                {
+                    State.Flags.Add($"fest-{today}");
+                    PendingMiniGame = new MiniGameRequest("tug", group.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    Bus.Publish(PendingMiniGame);
+                }, !State.Flag($"fest-{today}") && me.Stamina.CanDoDemanding, Loc.T("Sudah ikut hari ini", "Already played today")));
+                break;
+            case "food":
+                long price = 15_000L * group.Count;
+                o.Add(new("kerak-telor", Loc.T($"Jajan kerak telor & es dawet ({Loc.Money(price)})", $"Buy kerak telor & es dawet ({Loc.Money(price)})"), "🥘", () =>
+                {
+                    if (!State.Wallet.Spend(price, Loc.T("Jajan di festival", "Festival snacks"), Clock.DayIndex))
+                    {
+                        return;
+                    }
+
+                    foreach (FamilyMember m in State.Members.Where(m => group.Contains(m.Id)))
+                    {
+                        m.Needs.Add(NeedKind.Hunger, 35);
+                        m.Needs.Add(NeedKind.Fun, 10);
+                    }
+
+                    Bus.Effect(EffectKind.Hearts, me.Position, 1.2f);
+                    Bus.Sound("coins");
+                }, State.Wallet.CanAfford(price)));
+                break;
+            case "toys":
+                o.Add(new("party-hat", Loc.T("Beli topi pesta (Rp 25.000)", "Buy a party hat (Rp 25,000)"), "🥳", () => Buy("party-hat"), State.Wallet.CanAfford(25_000)));
+                o.Add(new("balloon", Loc.T("Lempar gelang berhadiah (Rp 10.000)", "Ring toss for a prize (Rp 10,000)"), "🎯", () =>
+                {
+                    if (!State.Wallet.Spend(10_000, Loc.T("Lempar gelang", "Ring toss"), Clock.DayIndex))
+                    {
+                        return;
+                    }
+
+                    bool won = Random.Chance(0.25f + (me.Skills[SkillKind.Sports] * 0.04f));
+                    me.Needs.Add(NeedKind.Fun, 12);
+                    if (won)
+                    {
+                        string prize = Random.Pick(new[] { "doll", "toy-car", "crown", "cat-ears" });
+                        State.Inventory.Add(prize);
+                        Bus.Notice(Loc.T($"Kena! Dapat {Economy.ItemCatalog.Get(prize).Name}!", $"Ringer! You won a {Economy.ItemCatalog.Get(prize).Name}!"), "🎯", NoticeKind.Good);
+                        Bus.Effect(EffectKind.Confetti, me.Position, 1.5f);
+                    }
+                    else
+                    {
+                        Say(me, Loc.T("Yah, meleset! Sekali lagi?", "Missed! One more go?"));
+                    }
+                }, State.Wallet.CanAfford(10_000)));
+                break;
+        }
+    }
+
     private List<InteractionOption> FeatureOptions(TownFeature feature)
     {
         FamilyMember me = Controlled;
@@ -925,6 +1072,9 @@ public sealed partial class GameSession
         List<InteractionOption> o = [];
         switch (feature.Kind)
         {
+            case FeatureKind.FestivalStall:
+                FestivalOptions(feature, me, group, o);
+                break;
             case FeatureKind.Campfire:
                 o.Add(new("story", Loc.T("Bercerita di api unggun", "Tell stories by the fire"), "🔥", () =>
                 {
@@ -940,7 +1090,20 @@ public sealed partial class GameSession
                         MemoryKind.Trip, EmotionalOutcome.Heartwarming, group, WorldMap.Name(PlaceId.Camping), 3f, "campfire");
                 }));
                 break;
+            case FeatureKind.Inn:
+                {
+                    string? blocked = OvernightBlocked(PlaceId.Beach);
+                    o.Add(new("inn", Loc.T($"Menginap semalam ({Loc.Money(InnPrice)})", $"Stay the night ({Loc.Money(InnPrice)})"), "🛏", () => StayOvernight(PlaceId.Beach),
+                        blocked is null && State.Wallet.CanAfford(InnPrice), blocked ?? Loc.T("Uang tidak cukup", "Not enough money")));
+                    break;
+                }
+
             case FeatureKind.Tent:
+                {
+                    string? blocked = OvernightBlocked(PlaceId.Camping);
+                    o.Add(new("camp-night", Loc.T("Menginap di tenda sampai pagi", "Camp overnight until morning"), "🌙", () => StayOvernight(PlaceId.Camping), blocked is null, blocked));
+                }
+
                 o.Add(new("tent", Loc.T("Istirahat di tenda", "Rest in the tent"), "⛺", () =>
                 {
                     Clock.Advance(60);
@@ -1036,6 +1199,8 @@ public sealed partial class GameSession
         FeatureKind.Carousel => Loc.T("Komidi Putar", "Carousel"),
         FeatureKind.Pond => Loc.T("Kolam Ikan", "Fish Pond"),
         FeatureKind.Playground => Loc.T("Taman Bermain Anak", "Playground"),
+        FeatureKind.FestivalStall => Loc.T("Stan festival", "Festival stall"),
+        FeatureKind.Inn => Loc.T("Penginapan Pantai", "Beach Inn"),
         _ => Loc.T("Pantai Berpasir", "Sandy Beach"),
     };
 

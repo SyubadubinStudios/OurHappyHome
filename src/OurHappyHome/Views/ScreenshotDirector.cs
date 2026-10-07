@@ -7,6 +7,7 @@ using OurHappyHome.Core;
 using OurHappyHome.Core.Family;
 using OurHappyHome.Core.Scenarios;
 using OurHappyHome.Core.Simulation;
+using OurHappyHome.Core.Time;
 using OurHappyHome.Core.World;
 
 namespace OurHappyHome.Views;
@@ -237,6 +238,88 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         await Wait(1.2);
         await Shot("wardrobe");
         game.ClosePanel();
+        foreach (FamilyMember m in session.State.Members)
+        {
+            session.SetAccessory(m.Id, null); // back to dressing for the weather
+        }
+
+        // v1.2: a good friend visits on Sunday morning.
+        session.Travel(PlaceId.Home, false);
+        session.State.Friendships["dimas"] = 35f;
+        await SkipTo(game, 1, 23, 9.9f);
+        session.SetWeather(WeatherKind.Sunny);
+        await Simulate(game, 0, realSeconds: 3);
+        Npc dimas = session.Npcs.First(n => n.Id == "dimas");
+        session.Controlled.Position = dimas.Position + new Vector2(-1.4f, 1.2f);
+        session.Controlled.Yaw = MathF.Atan2(1.4f, -1.2f);
+        game.Renderer!.Rig.Yaw = 0.6f;
+        game.Renderer!.Rig.Zoom = 0.7f;
+        game.Renderer!.Rig.Snap(new Vector3(dimas.Position.X, 1f, dimas.Position.Y));
+        await Wait(1.2);
+        await Shot("dimas-visit");
+        game.Renderer!.Rig.Zoom = 1f;
+
+        // Rain: everyone outside puts on a rain hat by themselves.
+        session.SetWeather(WeatherKind.Rain);
+        await SkipTo(game, 1, 23, 10.985f);
+        session.Paused = true;
+        foreach ((FamilyMember m, int i) in session.State.Members.Select((m, i) => (m, i)))
+        {
+            m.Task = null;
+            m.Anchor = null;
+            m.Pose = AnchorPose.Stand;
+            m.Moving = false;
+            m.Position = new Vector2(-3.4f + (i * 1.1f), 11.2f);
+            m.Yaw = 0f;
+        }
+
+        session.Paused = false;
+        await Wait(1.5); // the 11:00 check dresses them
+        session.Paused = true;
+        game.Renderer!.Rig.Yaw = 0f;
+        game.Renderer!.Rig.Zoom = 0.55f;
+        game.Renderer!.Rig.Snap(new Vector3(-1.2f, 1f, 11.2f));
+        await Wait(0.8);
+        await Shot("rainy-day-hats");
+        game.Renderer!.Rig.Zoom = 1f;
+        session.Paused = false;
+
+        // The monthly town festival in the park.
+        session.SetWeather(WeatherKind.Sunny);
+        await SkipTo(game, 1, 24, 16.4f);
+        session.Travel(PlaceId.Park, true);
+        session.Controlled.Position = new Vector2(-44f, 47.6f);
+        session.Controlled.Yaw = MathF.PI;
+        game.Renderer!.Rig.Yaw = 0f;
+        game.Renderer!.Rig.Snap(new Vector3(-44f, 1f, 47f));
+        await Simulate(game, 0, realSeconds: 3);
+        await Shot("festival-park");
+
+        await FestivalGame(game, "kerupuk", "kerupuk-minigame");
+        await FestivalGame(game, "tug", "tug-of-war");
+
+        await SkipTo(game, 1, 24, 20.02f);
+        session.Controlled.Position = new Vector2(-31f, 54f);
+        session.Controlled.Yaw = MathF.PI;
+        game.Renderer!.Rig.Yaw = 0f;
+        game.Renderer!.Rig.PitchOffset = -0.7f;
+        game.Renderer!.Rig.Zoom = 1.2f;
+        game.Renderer!.Rig.Snap(new Vector3(-31f, 1f, 54f));
+        await Wait(2.4);
+        await Shot("festival-fireworks");
+        game.Renderer!.Rig.PitchOffset = 0f;
+        game.Renderer!.Rig.Zoom = 1f;
+
+        // A night in the tent at the campsite.
+        session.State.Inventory.Add("tent");
+        await SkipTo(game, 1, 29, 19f);
+        session.Travel(PlaceId.Camping, true);
+        session.StayOvernight(PlaceId.Camping);
+        session.Controlled.Position = new Vector2(-24f, -221f);
+        game.Renderer!.Rig.Yaw = MathF.PI;
+        game.Renderer!.Rig.Snap(new Vector3(-24f, 1f, -221f));
+        await Simulate(game, 0, realSeconds: 4);
+        await Shot("camping-morning");
 
         Dispatcher.UIThread.Post(() => window.Close());
     }
@@ -317,6 +400,36 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
             }
 
             m.Sick = false;
+        }
+    }
+
+    /// <summary>Jumps the calendar straight to a date and hour (no simulation in between).</summary>
+    private static async Task SkipTo(GameScreen game, int month, int day, float hour)
+    {
+        GameSession s = game.Session;
+        game.ClosePanel();
+        await EndScenario(s);
+        s.State.Clock.TotalMinutes = (GameDate.ToDayIndex(1, month, day) * 1440.0) + (hour * 60.0);
+        s.State.ScheduleCursor = s.State.Clock.TotalMinutes - 0.5;
+        s.State.Clock.Speed = 1f;
+        Refill(s);
+        await Wait(0.6);
+    }
+
+    /// <summary>Opens a festival contest at its stall and captures the mini-game mid-play.</summary>
+    private async Task FestivalGame(GameScreen game, string stall, string name)
+    {
+        GameSession session = game.Session;
+        TownFeature feature = session.Map.Features.First(f => f.Kind == FeatureKind.FestivalStall && f.Label == stall);
+        session.Controlled.Position = feature.Area.Center + new Vector2(0f, 1.7f);
+        await Wait(0.3);
+        if (session.GetInteractions().SelectMany(t => t.Options).FirstOrDefault(o => o.Id == stall) is { Enabled: true } option)
+        {
+            option.Execute();
+            await Wait(5.5);
+            await Shot(name);
+            game.CloseMiniGameForCapture();
+            session.CompleteMiniGame(0.8f);
         }
     }
 

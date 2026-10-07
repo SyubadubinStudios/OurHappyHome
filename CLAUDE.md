@@ -51,6 +51,11 @@ dotnet run --project src/OurHappyHome -- --screenshots docs/images      # regene
 - Rodin quadrupeds come out upright, facing -Y in Blender. Rig them with `tools/blender/rig_animal.py`
   (no rotation needed). Render rig checks with `preview_poses.py`.
 - Rodin voice (`GenerateVoiceWithElevenLabsV3`) often fails on alternate calls; retry the same line.
+- ThreeNet 0.7 has no morph targets: faces use the `Jaw` bone (never keyed; `strip_channels` removes the
+  exporter's sampled Jaw channels) driven by `Rendering/Jaw`. For Spine/Chest/Head, positive X rotation in
+  `rig_character.py` bends forward/down.
+- `ScreenshotDirector.SkipTo` jumps the calendar without simulating; schedule minutes replay from
+  `ScheduleCursor`, so set it just before the target minute.
 - Interiors (`WorldMap.Interiors`) are diorama rooms at x ≈ 245–290, z ≈ -290…-255, built from interior
   `FeatureKind`s; enter/exit teleports and publishes `TeleportEvent` for the camera.
 

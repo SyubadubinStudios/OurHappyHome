@@ -84,6 +84,32 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - [x] 41 test xUnit (baru: interior, belanja di dalam supermarket, resep, kostum & dekorasi album tersimpan)
 - [x] 28 screenshot otomatis (8 baru) dan gambar rig tetangga & hewan
 
+## 2026-10-08 · v1.2
+
+### Aset (Blender MCP)
+- [x] Tulang Jaw di 14 rig manusia (bobot wajah bagian bawah dari posisi hidung), tidak dikunci di klip
+      (`strip_channels`) sehingga game bisa menggerakkannya
+- [x] Aksi baru Happy & Sad; perbaikan arah sumbu X tulang Spine/Chest/Head di semua pose lama
+- [x] Semua rig keluarga & tetangga diekspor ulang lewat Blender MCP
+
+### Game
+- [x] Bahasa tubuh menurut suasana hati (Happy/Sad), mulut bergerak saat bicara (keluarga & tetangga)
+- [x] Musim hujan/kemarau di HUD, hari libur nasional & libur semester (`IsWorkDay`, `IsSchoolDay`)
+- [x] Hari Anak (kado), Hari Ibu (hadiah bernilai ganda + kenangan), Hari Guru (bunga untuk Bu Guru)
+- [x] Topi hujan otomatis & topi jerami di musim kemarau (`AccessoryAuto`)
+- [x] Jadwal tetangga (`NpcStop`), persahabatan (Kenalan → Teman → Teman baik → Sahabat), kunjungan Dimas
+- [x] Festival kota: stan, panggung, bendera merah putih, umbul-umbul, lampion, kembang api, suara kembang api
+- [x] Mini-game Lomba Makan Kerupuk & Tarik Tambang (kekuatan tim = jumlah anggota keluarga)
+- [x] Mode perjalanan: jalan kaki, mobil bersama Ayah, angkot
+- [x] Menginap di tenda (bumi perkemahan) atau Penginapan Pantai
+- [x] 3 pencapaian baru
+- [ ] Rumah dua lantai (dipindah ke v1.3)
+
+### Kualitas
+- [x] 50 test xUnit (baru: kalender & musim, jadwal tetangga, festival, mode perjalanan, menginap, pakaian
+      otomatis; uji seminggu kini 6 seed)
+- [x] 35 screenshot otomatis (7 baru)
+
 ## Catatan perbaikan selama pengembangan
 - Titik pendekatan kursi makan semula berada di dalam meja, sehingga AI tidak pernah sampai. Sekarang titiknya dihitung di luar footprint, dan perjalanan punya batas waktu.
 - Bahan makanan habis di tengah minggu. Sekarang orang tua berbelanja otomatis saat persediaan menipis.
@@ -93,3 +119,5 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - (v1.1) AI mengepel di dapur padahal genangan ada di kamar mandi, sehingga skenario keran bocor tidak pernah selesai dan tidak ada yang memasak. Sekarang tugas Bersih-bersih menuju genangan terdekat.
 - (v1.1) Topi kostum muncul raksasa di pinggang. Penyebabnya: pemutar animasi milik pengunjung yang sudah dihapus masih berjalan, dan ThreeNet memakai ulang id node-nya untuk node baru. Sekarang animasi dihentikan sebelum node dihapus.
 - (v1.1) Pratinjau "side" di Blender memutar kamera 90°, sehingga anjing & kucing tampak berbaring. Kamera pratinjau sekarang memakai sumbu atas yang benar.
+- (v1.2) Ibu terus mencoba memasak resep yang bahannya habis (pemilih resep belum mengenal resep v1.1 dan jatuh ke "telur" yang juga gagal), sehingga tidak ada yang belanja dan keluarga kelaparan. Pemilih resep kini mengenal resep baru dan hanya memilih masakan yang bisa dibuat.
+- (v1.2) Pose Read/Cook/Work/Run membuat kepala mendongak dan badan condong ke belakang karena tanda sumbu X terbalik untuk tulang punggung dan kepala. Sudah diperbaiki di skrip rig.

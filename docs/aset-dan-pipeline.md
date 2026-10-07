@@ -62,9 +62,12 @@ Skrip ini:
    proporsi untuk rok) dan posisi kaki.
 4. Membuat armature humanoid dengan 19 tulang dan *skinning* bone-heat, plus bobot berbasis jarak
    untuk verteks yang terlewat (maksimal 4 pengaruh).
-5. Membuat **12 aksi**: Idle, Walk, Run, Wave, Sit, Sleep, Cook, Cheer, Scared, Talk, Work, Read.
-   Rotasinya ditulis dalam ruang armature sehingga tidak bergantung pada *roll* tulang.
-6. Mengekspor GLB (skin + semua aksi) yang dibaca ThreeNet sebagai klip animasi.
+5. Membuat **14 aksi**: Idle, Walk, Run, Wave, Sit, Sleep, Cook, Cheer, Scared, Talk, Work, Read,
+   Happy, Sad. Rotasinya ditulis dalam ruang armature sehingga tidak bergantung pada *roll* tulang.
+6. Menambah tulang **Jaw** (v1.2): engsel setinggi hidung, bobot ke wajah bagian bawah dengan peralihan
+   halus. Jaw tidak pernah diberi keyframe, dan `strip_channels` membuang kanal hasil *sampling*
+   eksporter dari GLB, sehingga game bebas membuka dan menutup mulut saat karakter bicara.
+7. Mengekspor GLB (skin + semua aksi) yang dibaca ThreeNet sebagai klip animasi.
 
 ![](images/rig-father-poses.png)
 ![](images/rig-family-poses.png)

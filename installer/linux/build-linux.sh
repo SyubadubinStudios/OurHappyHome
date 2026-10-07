@@ -3,7 +3,7 @@
 #   artifacts/OurHappyHome-<version>-linux-x64.tar.gz   (extract, then ./install.sh)
 #   artifacts/OurHappyHome-<version>-x86_64.AppImage     (when appimagetool is installed)
 set -euo pipefail
-VERSION="${1:-1.1.0}"
+VERSION="${1:-1.2.0}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 ART="$ROOT/artifacts"

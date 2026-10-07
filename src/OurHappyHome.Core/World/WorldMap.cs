@@ -59,6 +59,13 @@ public enum FeatureKind
     Board,
     ClinicBed,
     Plant,
+
+    // Festival grounds in the park (only shown and usable on festival days).
+    FestivalStall,
+    FestivalStage,
+
+    /// <summary>The beach inn where the family can stay the night.</summary>
+    Inn,
 }
 
 /// <summary>
@@ -71,7 +78,7 @@ public sealed record TownFeature(FeatureKind Kind, Rect Area, float Height, stri
         or FeatureKind.Fence or FeatureKind.Pond or FeatureKind.Ocean or FeatureKind.Rock or FeatureKind.Tent or FeatureKind.FerrisWheel
         or FeatureKind.Carousel or FeatureKind.Mountain or FeatureKind.ParkedCar or FeatureKind.LampPost or FeatureKind.Bush
         or FeatureKind.Campfire or FeatureKind.Playground or FeatureKind.InteriorWall or FeatureKind.Door or FeatureKind.Shelf
-        or FeatureKind.Counter or FeatureKind.Desk or FeatureKind.Board or FeatureKind.ClinicBed or FeatureKind.Plant;
+        or FeatureKind.Counter or FeatureKind.Desk or FeatureKind.Board or FeatureKind.ClinicBed or FeatureKind.Plant or FeatureKind.Inn;
 
     /// <summary>Trees and posts only block near their trunk.</summary>
     public Rect CollisionArea => Kind switch
@@ -308,6 +315,8 @@ public sealed class WorldMap
             Add(FeatureKind.Tree, Rect.FromCenter(new Vector2(-70f + (i * 25f), 232f), new Vector2(3f, 3f)), 7f, "#3FA34D", 0f, "palm");
         }
 
+        Add(FeatureKind.Inn, Rect.FromCenter(new Vector2(18f, 247f), new Vector2(11f, 7f)), 3.4f, "#F4E3C3", MathF.PI, Loc.T("Penginapan Pantai", "Beach Inn"));
+
         // ---- forest
         Road(-110f, 18f, -28f, 22f);
         for (int i = 0; i < 240; i++)
@@ -347,7 +356,29 @@ public sealed class WorldMap
             Add(FeatureKind.PineTree, Rect.FromCenter(p, new Vector2(4f, 4f)), random.Range(7f, 12f), "#2F6B3A");
         }
 
+        BuildFestival();
         BuildInteriors();
+    }
+
+    /// <summary>Where the festival fireworks go up.</summary>
+    public static readonly Vector2 FestivalCenter = new(-31f, 46f);
+
+    private void BuildFestival()
+    {
+        // Stalls along the lawn in front of the pond; the stage is the contest ground.
+        (string Label, string Color, float X)[] stalls =
+        [
+            ("kerupuk", "#E63946", -52f),
+            ("tug", "#2A9D8F", -46.5f),
+            ("food", "#F4A261", -41f),
+            ("toys", "#9B5DE5", -35.5f),
+        ];
+        foreach ((string label, string color, float x) in stalls)
+        {
+            Add(FeatureKind.FestivalStall, Rect.FromCenter(new Vector2(x, 44.5f), new Vector2(3.2f, 1.6f)), 2.6f, color, 0f, label);
+        }
+
+        Add(FeatureKind.FestivalStage, Rect.FromCenter(FestivalCenter, new Vector2(8f, 5f)), 0.25f, "#B5835A", 0f, "stage");
     }
 
     // ------------------------------------------------------------ interiors

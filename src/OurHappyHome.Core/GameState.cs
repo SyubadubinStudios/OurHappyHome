@@ -68,6 +68,11 @@ public sealed class GameState
 
     public HashSet<string> NeighboursMet { get; set; } = [];
 
+    /// <summary>How well the family knows each neighbour (0-100).</summary>
+    public Dictionary<string, float> Friendships { get; set; } = [];
+
+    public float Friendship(string npc) => Friendships.GetValueOrDefault(npc);
+
     /// <summary>Last game minute whose scheduled moments were processed.</summary>
     public double ScheduleCursor { get; set; }
 

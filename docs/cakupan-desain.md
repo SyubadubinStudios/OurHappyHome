@@ -39,7 +39,9 @@ Pemetaan dari setiap bagian `Our_Happy_Home_Game_Design.md` ke implementasinya.
 - **Tetangga & warga kota** dengan model ter-rig dan suara: Nenek Sari (kue), Pak Budi (pekerjaan kecil),
   Dimas (main bola), Bu Guru Rina (di ruang kelas), dr. Sinta (di klinik).
 - **Gedung yang bisa dimasuki**: ruang kelas, supermarket dan klinik (v1.1).
-- **Kostum & topi** dari lemari kostum (v1.1).
+- **Kostum & topi** dari lemari kostum (v1.1), pakaian otomatis menurut cuaca (v1.2).
+- **Festival kota, hari libur nasional, musim, jadwal tetangga & persahabatan, mobil & angkot, liburan
+  menginap** (v1.2).
 - **Mini-game**: memasak (3 jenis tantangan), sekolah (6 jenis), kios limun, arkade tangkap bintang.
 - **Usaha kue rumahan Ibu**, gambar Kak Nara yang dibeli tetangga, kerajinan, dan sakit flu dengan
   sup ayam atau klinik.
@@ -47,4 +49,4 @@ Pemetaan dari setiap bagian `Our_Happy_Home_Game_Design.md` ke implementasinya.
 - **Cutaway dinding** gaya *doll house*, pintu yang membuka sendiri, kursor bangun dengan validasi.
 - **11 pencapaian**, rapor sekolah, buku kas keluarga, dan ramalan cuaca besok.
 - **Dua bahasa** (ID/EN), autosave, dan mode screenshot otomatis.
-- **41 test otomatis** untuk simulasi.
+- **50 test otomatis** untuk simulasi.

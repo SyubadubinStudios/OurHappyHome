@@ -96,6 +96,7 @@ public sealed class GameRenderer : IDisposable
         House.Sync(s, CameraNode.Position, dt);
         House.FaceIcons(cameraRotation);
         Characters.Update(s, dt, cameraRotation);
+        Town.ShowFestival(s.FestivalActive);
         Town.Update(dt, CameraNode.Position, s.Clock.IsNight, s.State.Weather.Current is WeatherKind.Windy or WeatherKind.SevereStorm ? s.State.Weather.Intensity : 0.1f);
         Effects.Update(dt, CameraNode);
         Scene.UpdateAnimations(dt);

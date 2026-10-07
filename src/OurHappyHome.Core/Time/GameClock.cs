@@ -50,7 +50,13 @@ public readonly record struct GameDate(int Year, int Month, int Day, Weekday Wee
 
     public bool IsWeekend => Weekday is Weekday.Saturday or Weekday.Sunday;
 
-    public bool IsSchoolDay => !IsWeekend;
+    /// <summary>Father works on weekdays that are not public holidays.</summary>
+    public bool IsWorkDay => !IsWeekend && !Calendar.IsPublicHoliday(this);
+
+    /// <summary>School runs on work days outside the school breaks.</summary>
+    public bool IsSchoolDay => IsWorkDay && !Calendar.IsSchoolBreak(this);
+
+    public Season Season => Seasons.Of(this);
 
     public string MonthName => MonthNames(Month);
 

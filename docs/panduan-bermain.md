@@ -102,6 +102,35 @@ dan keluarga yang ikut masuk bersamamu.
 Keluar lewat keset merah di depan pintu (**Keluar**). Gedung punya jam buka: sekolah Senin–Jumat
 06:30–15:00, supermarket 07:00–22:00, klinik 07:00–21:00.
 
+## Musim, hari libur & festival
+
+- **Musim hujan** (Oktober–Maret) lebih sering hujan dan badai, **musim kemarau** (April–September)
+  lebih cerah. Ikon musim tampil di sebelah ramalan cuaca.
+- **Hari libur nasional** (1 Januari, 1 Mei, 1 Juni, 17 Agustus, 25 Desember): Ayah libur kerja dan tidak
+  ada sekolah. **Libur semester** 24 Juni–12 Juli dan 20 Desember–2 Januari.
+- **Hari Anak Nasional** (23 Juli): Ayah dan Ibu memberi kado. **Hari Ibu** (22 Desember): hadiah apa pun
+  untuk Ibu terasa istimewa. **Hari Guru** (25 November): bawakan buket bunga untuk Bu Guru Rina.
+- **Festival kota** setiap Sabtu keempat, 24 Januari, dan 17 Agustus, pukul 15:00–22:00 di Taman Kota:
+  lomba makan kerupuk, tarik tambang (makin banyak keluarga di timmu, makin kuat), kerak telor,
+  lempar gelang berhadiah, dan kembang api pukul 20:00.
+
+## Perjalanan & menginap
+
+Di peta (**M**) pilih cara berangkat: **jalan kaki/sepeda**, **mobil bersama Ayah** (paling cepat, butuh
+mobil di garasi dan Ayah di rumah; Ayah ikut menyetir), atau **angkot** (Rp 5.000 per orang).
+
+Saat besok bukan hari sekolah, keluarga bisa **menginap** mulai pukul 17:00: di tenda di Bumi
+Perkemahan (butuh tenda dari Mal) atau di **Penginapan Pantai** (Rp 350.000). Semua bangun pukul 07:00
+dengan segar, dan malam itu menjadi kenangan istimewa.
+
+## Tetangga & teman
+
+Tetangga punya jadwal sendiri: Nenek Sari belanja ke supermarket di akhir pekan dan duduk di taman
+sore hari, Bu Guru Rina mengajar di kelas pada hari sekolah, Dimas duduk di kelas lalu bermain di
+taman sore hari, dan dr. Sinta bertugas di klinik. Mengobrol, membantu dan bermain bersama menaikkan
+**persahabatan** (Kenalan → Teman → Teman baik → Sahabat). Jika sudah **teman baik**, Dimas datang ke
+rumah mengajak main di akhir pekan.
+
 ## Uang
 
 - **Pemasukan:** gaji Ayah (Rp 350.000 per hari kerja, dibayar Jumat), usaha kue Ibu, jualan limun
@@ -159,6 +188,10 @@ di Jurnal.
 Momen penting otomatis menjadi kenangan berisi foto, peserta, tempat, perasaan, dan perubahan
 hubungan. Contohnya sarapan pertama, masakan sempurna, keran yang menyembur, perjalanan, badai yang
 terlewati, dan ulang tahun. Buka album dengan **L**. Kenangan juga muncul dalam percakapan keluarga.
+
+Anggota keluarga juga berpakaian sendiri sesuai cuaca: **topi hujan** saat hujan dan **topi jerami**
+saat terik di musim kemarau (jika punya), kecuali kamu sudah memilihkan kostum. Pilih **Tanpa** di
+lemari kostum untuk mengembalikannya ke pakaian otomatis.
 
 Di album, klik **🖼** untuk mengganti bingkai foto (klasik, kayu, pastel, emas, film) dan **⭐** untuk
 menempel hingga tiga stiker. Klik ⭐ sekali lagi saat sudah ada tiga stiker untuk melepas semuanya.

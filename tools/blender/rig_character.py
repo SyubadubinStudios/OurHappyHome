@@ -7,7 +7,9 @@ Takes a Rodin generated T-pose character (.glb), and:
   3. finds the joints from the mesh shape (arm line, neck, crotch, feet),
   4. builds a humanoid armature and skins the mesh (bone heat, distance fallback),
   5. keyframes the game's animation set (Idle, Walk, Run, Wave, Sit, Sleep,
-     Cook, Cheer, Scared, Talk, Work, Read),
+     Cook, Cheer, Scared, Talk, Work, Read, Happy, Sad). The Jaw bone is
+     never keyed: the game opens and closes it at runtime for lip-sync
+     (ThreeNet has no morph targets, so faces are driven by bones),
   6. exports a skinned, animated .glb.
 
 Run headless:
@@ -160,8 +162,19 @@ def find_landmarks(co):
     toe_y = float(np.percentile(feet[:, 1], 3)) if len(feet) else -0.1 * H
     heel_y = float(np.percentile(feet[:, 1], 97)) if len(feet) else 0.05 * H
 
+    # Face: the head is everything above the neck; the mouth sits in the lower front of it.
+    chin_z = neck_z + 0.015 * H
+    # Lower half of the head only, so cap brims and fringes do not count as the face;
+    # its front-most point is the nose tip.
+    lower = co[(co[:, 2] > chin_z) & (co[:, 2] < chin_z + 0.5 * (H - chin_z)) & (np.abs(co[:, 0]) < 0.06 * H)]
+    head_y = float(np.median(lower[:, 1])) if len(lower) else torso_y
+    face_y = float(np.percentile(lower[:, 1], 2)) if len(lower) else torso_y - 0.08 * H
+    nose = lower[lower[:, 1] <= face_y] if len(lower) else lower
+    mouth_z = float(np.median(nose[:, 2])) if len(nose) else chin_z + 0.25 * (H - chin_z)
+
     return dict(H=H, max_x=max_x, arm_z=arm_z, torso_hw=torso_hw, torso_y=torso_y,
                 neck_z=neck_z, crotch=crotch, leg_x=leg_x, toe_y=toe_y, heel_y=heel_y,
+                head_y=head_y, face_y=face_y, chin_z=chin_z, mouth_z=mouth_z,
                 arm_centre=arm_centre)
 
 
@@ -196,6 +209,8 @@ def build_armature(lm):
     bone("Chest", (0, y, chest_z), (0, y, neck_base), "Spine", connect=True)
     bone("Neck", (0, y, neck_base), (0, y, lm["neck_z"] + 0.03 * H), "Chest", connect=True)
     bone("Head", (0, y, lm["neck_z"] + 0.03 * H), (0, y, H), "Neck", connect=True)
+    # Jaw: hinged level with the mouth, pointing forward and down to the chin.
+    bone("Jaw", (0, lm["head_y"], lm["mouth_z"]), (0, lm["face_y"] + 0.01 * H, lm["chin_z"]), "Head")
 
     for side, s in (("L", 1.0), ("R", -1.0)):
         shoulder_x = lm["torso_hw"] * 0.78
@@ -260,6 +275,36 @@ def skin(mesh, rig):
         fixed += 1
     print(f"distance weights for {fixed} of {len(mesh.data.vertices)} vertices")
 
+    # Lower front of the face follows the Jaw (smooth falloff up to the mouth line).
+    if "Jaw" in rig.data.bones and "Head" in groups:
+        jaw = rig.data.bones["Jaw"]
+        nose_z = jaw.head_local.z
+        chin_z = jaw.tail_local.z
+        face_y = jaw.tail_local.y
+        head_y = jaw.head_local.y
+        height = rig.data.bones["Head"].tail_local.z
+        # Only below the gap between nose and mouth; full weight from the lower lip down.
+        mouth_z = nose_z - 0.3 * (nose_z - chin_z)
+        band = max(mouth_z - chin_z, 1e-3)
+        jaw_group = groups["Jaw"]
+        moved = 0
+        for v in mesh.data.vertices:
+            p = v.co
+            if p.z < chin_z - 0.25 * band or p.z > mouth_z or abs(p.x) > 0.055 * height:
+                continue
+            front = (head_y - p.y) / max(head_y - face_y, 1e-3)
+            if front < 0.45:
+                continue
+            w = min(1.0, (mouth_z - p.z) / (0.6 * band)) * min(1.0, (front - 0.45) / 0.3)
+            w *= min(1.0, (0.055 * height - abs(p.x)) / (0.02 * height))
+            if w <= 0.02:
+                continue
+            for g in v.groups:
+                mesh.vertex_groups[g.group].add([v.index], g.weight * (1 - w), "REPLACE")
+            jaw_group.add([v.index], w, "REPLACE")
+            moved += 1
+        print(f"jaw weights for {moved} vertices")
+
     # Keep every vertex to at most four normalised influences (glTF / CPU skinning).
     bpy.context.view_layer.objects.active = mesh
     bpy.ops.object.mode_set(mode="WEIGHT_PAINT")
@@ -310,6 +355,8 @@ class Animator:
 
     def key(self, frame):
         for pb in self.rig.pose.bones:
+            if pb.name == "Jaw":
+                continue  # driven by the game at runtime
             pb.keyframe_insert("rotation_quaternion", frame=frame)
             pb.keyframe_insert("location", frame=frame)
 
@@ -339,9 +386,9 @@ def make_actions(rig):
     for f, t in ((1, 0.0), (25, 1.0), (49, 0.0)):
         a.reset()
         a.arms_down(bend_l=10 + 4 * t, bend_r=10 + 4 * t, out=2 * t)
-        a.set("Chest", (X, -2 * t))
+        a.set("Chest", (X, 2 * t))
         a.set("Spine", (Y, 1.5 * t - 0.75))
-        a.set("Head", (X, 2 * t), (Z, 3 * t - 1.5))
+        a.set("Head", (X, -2 * t), (Z, 3 * t - 1.5))
         a.key(f)
 
     def gait(name, length, stride, arm, knee, bob, lean):
@@ -358,7 +405,7 @@ def make_actions(rig):
             a.set("Shin.R", (X, knee * max(0.0, -c) + 6))
             a.set("Foot.L", (X, -6 * s))
             a.set("Foot.R", (X, 6 * s))
-            a.set("Spine", (X, -lean), (Z, 4 * s))
+            a.set("Spine", (X, lean), (Z, 4 * s))
             a.set("Chest", (Z, -6 * s))
             a.set("Head", (Z, 2 * s))
             a.lift("Hips", -bob * abs(c))
@@ -386,8 +433,8 @@ def make_actions(rig):
         a.set("Thigh.R", (X, -88))
         a.set("Shin.L", (X, 88))
         a.set("Shin.R", (X, 88))
-        a.set("Chest", (X, -3 * t))
-        a.set("Head", (X, 4 * t), (Z, 4 - 8 * t))
+        a.set("Chest", (X, 3 * t))
+        a.set("Head", (X, -4 * t), (Z, 4 - 8 * t))
         a.key(f)
 
     # Sleep: relaxed, slow breathing (the game lays the character down).
@@ -395,7 +442,7 @@ def make_actions(rig):
     for f, t in ((1, 0.0), (49, 1.0), (97, 0.0)):
         a.reset()
         a.arms_down(bend_l=20, bend_r=20, out=-4)
-        a.set("Chest", (X, -3 * t))
+        a.set("Chest", (X, 3 * t))
         a.set("Head", (Z, 14), (X, 6))
         a.set("Thigh.L", (X, -6))
         a.set("Shin.L", (X, 12))
@@ -410,8 +457,8 @@ def make_actions(rig):
         a.set("ForeArm.L", (Z, -70))
         a.set("UpperArm.R", (Y, -55 + 8 * math.sin(ang)), (X, -45 + 8 * math.cos(ang)))
         a.set("ForeArm.R", (Z, 70 + 10 * math.sin(ang)))
-        a.set("Spine", (X, -8))
-        a.set("Head", (X, -12))
+        a.set("Spine", (X, 8))
+        a.set("Head", (X, 12))
         a.key(1 + i * 4)
 
     # Cheer: jump with both arms up.
@@ -426,7 +473,7 @@ def make_actions(rig):
         a.set("Thigh.R", (X, -20 * (1 - up)))
         a.set("Shin.L", (X, 35 * (1 - up)))
         a.set("Shin.R", (X, 35 * (1 - up)))
-        a.set("Head", (X, 10 * up))
+        a.set("Head", (X, -10 * up))
         a.lift("Hips", lift - 0.03 * (1 - up))
         a.key(f)
 
@@ -439,8 +486,8 @@ def make_actions(rig):
         a.set("UpperArm.R", (Y, -50), (X, -60))
         a.set("ForeArm.L", (Z, -120 + j))
         a.set("ForeArm.R", (Z, 120 + j))
-        a.set("Spine", (X, -18))
-        a.set("Head", (X, -10), (Z, j))
+        a.set("Spine", (X, 18))
+        a.set("Head", (X, 10), (Z, j))
         a.set("Thigh.L", (X, -30))
         a.set("Thigh.R", (X, -30))
         a.set("Shin.L", (X, 55))
@@ -468,8 +515,8 @@ def make_actions(rig):
         a.set("ForeArm.L", (Z, -40))
         a.set("UpperArm.R", (Y, -40), (X, -70 + 50 * t))
         a.set("ForeArm.R", (Z, 50 + 50 * t))
-        a.set("Spine", (X, -20))
-        a.set("Head", (X, -15))
+        a.set("Spine", (X, 20))
+        a.set("Head", (X, 15))
         a.set("Thigh.L", (X, -15))
         a.set("Shin.L", (X, 25))
         a.key(f)
@@ -482,7 +529,28 @@ def make_actions(rig):
         a.set("UpperArm.R", (Y, -62), (X, -38))
         a.set("ForeArm.L", (Z, -95))
         a.set("ForeArm.R", (Z, 95))
-        a.set("Head", (X, -18 + 3 * t), (Z, 5 * t))
+        a.set("Head", (X, 18 - 3 * t), (Z, 5 * t))
+        a.key(f)
+
+    # Happy: a light bounce with relaxed, swinging arms and a tilting head (1 s loop).
+    action("Happy")
+    for f, t in ((1, 0.0), (7, 1.0), (13, 0.0), (19, 1.0), (25, 0.0)):
+        a.reset()
+        a.arms_down(swing_l=8 * t, swing_r=-8 * t, bend_l=14, bend_r=14, out=6)
+        a.set("Chest", (X, -3))
+        a.set("Head", (X, -4), (Y, 8 * t - 4))
+        a.lift("Hips", 0.012 * t)
+        a.key(f)
+
+    # Sad: slumped shoulders, head down, slow breathing (3 s loop).
+    action("Sad")
+    for f, t in ((1, 0.0), (37, 1.0), (73, 0.0)):
+        a.reset()
+        a.arms_down(bend_l=4, bend_r=4, out=-5)
+        a.set("Spine", (X, 6))
+        a.set("Chest", (X, 8 + 2 * t))
+        a.set("Head", (X, 22 + 3 * t))
+        a.lift("Hips", -0.004 * t)
         a.key(f)
 
     rig.animation_data.action = bpy.data.actions["Idle"]
@@ -520,6 +588,29 @@ def export(path, mesh, rig):
         bpy.ops.export_scene.gltf(**options)
 
 
+def strip_channels(path, bones):
+    """Removes animation channels of the given bones from a GLB (they stay at rest for the game to drive)."""
+    import json
+    import struct
+    with open(path, "rb") as f:
+        data = f.read()
+    json_len = struct.unpack_from("<I", data, 12)[0]
+    gltf = json.loads(data[20:20 + json_len])
+    rest = data[20 + json_len:]
+    names = {i: n.get("name") for i, n in enumerate(gltf.get("nodes", []))}
+    removed = 0
+    for anim in gltf.get("animations", []):
+        keep = [c for c in anim["channels"] if names.get(c["target"].get("node")) not in bones]
+        removed += len(anim["channels"]) - len(keep)
+        anim["channels"] = keep
+    text = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
+    text += b" " * ((4 - len(text) % 4) % 4)
+    out = struct.pack("<III", 0x46546C67, 2, 12 + 8 + len(text) + len(rest)) + struct.pack("<II", len(text), 0x4E4F534A) + text + rest
+    with open(path, "wb") as f:
+        f.write(out)
+    print(f"stripped {removed} channels of {sorted(bones)}")
+
+
 def process(src, dst, height):
     clear_scene()
     mesh = import_mesh(src)
@@ -532,6 +623,7 @@ def process(src, dst, height):
     skin(mesh, rig)
     actions = make_actions(rig)
     export(dst, mesh, rig)
+    strip_channels(dst, {"Jaw"})
     print(f"exported {dst} faces={len(mesh.data.polygons)} actions={actions}")
     return mesh, rig
 

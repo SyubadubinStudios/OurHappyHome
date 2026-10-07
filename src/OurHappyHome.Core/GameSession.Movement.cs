@@ -420,22 +420,60 @@ public sealed partial class GameSession
     }
 
     /// <summary>Places the player (and the party) somewhere else, e.g. after choosing a destination on the map.</summary>
-    public void Travel(PlaceId destination, bool bringFamily)
+    /// <summary>Dad can drive when the family car is at home and he is free.</summary>
+    public bool CanDrive =>
+        State.House.Furniture.Any(f => f.DefId == "car")
+        && State.Member(MemberId.Father) is { Away: false, InDanger: false };
+
+    /// <summary>Angkot (minibus) fare per person.</summary>
+    public const long AngkotFare = 5_000;
+
+    /// <summary>Minutes a trip takes: driving is fastest, the angkot is quicker than walking.</summary>
+    public float TravelMinutes(PlaceId destination, TravelMode mode)
     {
+        float distance = Vector2.Distance(Controlled.Position, Map.Get(destination).Entrance);
+        return mode switch
+        {
+            TravelMode.Car => Math.Clamp(distance / 22f, 4f, 18f),
+            TravelMode.Angkot => Math.Clamp(distance / 14f, 5f, 30f),
+            _ => Math.Clamp(distance / 8f, 5f, 45f),
+        };
+    }
+
+    public void Travel(PlaceId destination, bool bringFamily, TravelMode mode = TravelMode.Walk)
+    {
+        if (mode == TravelMode.Car && !CanDrive)
+        {
+            mode = TravelMode.Walk;
+        }
+
+        int riders = 1 + (bringFamily ? State.Members.Count(m => m.Id != State.Controlled && !m.Away && !m.InDanger) : 0);
+        if (mode == TravelMode.Angkot && !State.Wallet.Spend(AngkotFare * riders, Loc.T("Ongkos angkot", "Angkot fare"), Clock.DayIndex))
+        {
+            mode = TravelMode.Walk;
+        }
+
+        float minutes = TravelMinutes(destination, mode);
         Place place = Map.Get(destination);
         FamilyMember player = Controlled;
         CancelTask(player);
         player.Position = place.Entrance;
         player.Yaw = place.EntranceYaw;
         State.Party.Clear();
-        if (bringFamily)
+        foreach (FamilyMember m in State.Members.Where(m => m.Id != player.Id && !m.Away && !m.InDanger
+            && (bringFamily || (mode == TravelMode.Car && m.Id == MemberId.Father))))
         {
-            foreach (FamilyMember m in State.Members.Where(m => m.Id != player.Id && !m.Away && !m.InDanger))
-            {
-                State.Party.Add(m.Id);
-                CancelTask(m);
-                m.Position = place.Entrance + new Vector2(Random.Range(-1.5f, 1.5f), Random.Range(-1.5f, 1.5f));
-            }
+            // Dad always comes along when he drives.
+            State.Party.Add(m.Id);
+            CancelTask(m);
+            m.Position = place.Entrance + new Vector2(Random.Range(-1.5f, 1.5f), Random.Range(-1.5f, 1.5f));
+        }
+
+        if (mode == TravelMode.Car && State.Party.Count >= 2 && destination != PlaceId.Home && Random.Chance(0.3f))
+        {
+            CreateMemory(Loc.T("Bernyanyi di mobil", "Singing in the car"),
+                Loc.T("Ayah menyetir sambil semua bernyanyi lagu kesukaan keras-keras.", "Dad drove while everyone sang their favourite song at the top of their voices."),
+                MemoryKind.Trip, EmotionalOutcome.Joyful, [player.Id, .. State.Party], WorldMap.Name(destination), 1.5f, $"car-song:{Clock.DayIndex}");
         }
 
         // Anyone left out on an earlier trip heads home.
@@ -448,15 +486,92 @@ public sealed partial class GameSession
         }
 
         // Travelling takes time: farther places take longer.
-        float distance = Vector2.Distance(Rooms.FrontDoor, place.Entrance);
-        double travelMinutes = Math.Clamp(distance / 8f, 5f, 45f);
-        Clock.Advance(travelMinutes);
+        Clock.Advance(minutes);
+        LastTravelMode = mode;
         CurrentPlace = destination;
         OnEnterPlace(destination);
         if (destination == PlaceId.Home)
         {
             State.Party.Clear();
         }
+    }
+
+    public TravelMode LastTravelMode { get; private set; }
+
+    // -------------------------------------------------------------- overnight
+
+    /// <summary>Why the family cannot stay the night here (null when they can).</summary>
+    public string? OvernightBlocked(PlaceId place)
+    {
+        Time.GameDate tomorrow = Time.GameDate.FromDayIndex(Clock.DayIndex + 1);
+        if (Hour < 17f)
+        {
+            return Loc.T("Bisa menginap mulai pukul 17:00", "You can stay from 17:00");
+        }
+
+        if (tomorrow.IsSchoolDay)
+        {
+            return Loc.T("Besok sekolah. Menginap saat akhir pekan atau libur!", "School tomorrow. Stay on a weekend or holiday!");
+        }
+
+        if (State.Party.Count == 0)
+        {
+            return Loc.T("Ajak keluarga dulu (peta → Ajak keluarga)", "Bring the family first (map → bring the family)");
+        }
+
+        if (place == PlaceId.Camping && !State.Inventory.Has("tent"))
+        {
+            return Loc.T("Butuh tenda kemah (beli di Mal)", "You need a camping tent (buy one at the Mall)");
+        }
+
+        return null;
+    }
+
+    public const long InnPrice = 350_000;
+
+    /// <summary>
+    /// Spends the night at the campsite (own tent) or the beach inn: the night
+    /// passes to 07:00, everyone wakes rested and the trip becomes a special memory.
+    /// </summary>
+    public bool StayOvernight(PlaceId place)
+    {
+        if (OvernightBlocked(place) is not null || (place == PlaceId.Beach && !State.Wallet.Spend(InnPrice, Loc.T("Penginapan pantai", "Beach inn"), Clock.DayIndex)))
+        {
+            return false;
+        }
+
+        double minutes = ((24 * 60) - Clock.MinuteOfDay) + (7 * 60);
+        List<MemberId> group = [State.Controlled, .. State.Party];
+        Clock.Advance(minutes);
+        foreach (FamilyMember m in State.Members.Where(m => !m.Away))
+        {
+            bool onTrip = group.Contains(m.Id);
+            CancelTask(m);
+            m.Needs[NeedKind.Sleep] = 100f;
+            m.Stamina.Value = 100f;
+            m.Needs[NeedKind.Hunger] = MathF.Max(m.Needs[NeedKind.Hunger], 65f);
+            if (onTrip)
+            {
+                m.Needs.Add(NeedKind.Fun, 35);
+                m.Needs.Add(NeedKind.Social, 35);
+                m.Needs[NeedKind.Hygiene] = place == PlaceId.Beach ? 90f : 55f;
+                m.Mood.Add("overnight", Loc.T("Liburan menginap!", "A night away!"), 16, MoodKind.Excited, Now, 12 * 60);
+                foreach (MemberId other in group.Where(o => o != m.Id))
+                {
+                    State.Relationships.Change(m.Id, other, 4f);
+                }
+            }
+        }
+
+        Bus.Sound("birds");
+        Bus.Publish(new MusicEvent(MusicMood.Emotional));
+        bool camp = place == PlaceId.Camping;
+        CreateMemory(camp ? Loc.T("Tidur di tenda di bawah bintang", "Sleeping under the stars") : Loc.T("Malam di penginapan pantai", "A night at the beach inn"),
+            camp ? Loc.T("Kami bercerita sampai larut, mendengar jangkrik, lalu bangun disambut kabut pagi gunung.", "We told stories late into the night, listened to the crickets and woke to the mountain mist.")
+                 : Loc.T("Kami tertidur ditemani suara ombak, lalu sarapan sambil melihat matahari terbit.", "We fell asleep to the sound of the waves and had breakfast watching the sunrise."),
+            MemoryKind.Trip, EmotionalOutcome.Heartwarming, group, WorldMap.Name(place), 4f, $"overnight:{place}:{Clock.DayIndex}");
+        State.AddStat(Progression.Stat.Overnights);
+        return true;
     }
 
     // -------------------------------------------------------------- interiors
@@ -628,7 +743,23 @@ public sealed partial class GameSession
     {
         foreach (Npc npc in Npcs)
         {
+            bool wasVisiting = npc.Stop?.Tag == "visit";
+            npc.FollowSchedule(Hour, Date, State.Friendship(npc.Id));
+            if (npc.Stop?.Tag == "visit" && !wasVisiting)
+            {
+                Bus.Notice(Loc.T($"{npc.Name} datang ke rumah mengajak main!", $"{npc.Name} came over to play!"), "⚽", NoticeKind.Good);
+                npc.TalkTo(Controlled.Position, 3f);
+                Bus.Publish(new SpeechEvent(null, npc.Name, npc.Line(0), $"npc_{npc.Id}_0"));
+            }
+
             npc.Update(realDt, Random);
         }
     }
+}
+
+public enum TravelMode
+{
+    Walk,
+    Car,
+    Angkot,
 }
