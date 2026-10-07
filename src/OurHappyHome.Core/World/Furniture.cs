@@ -266,6 +266,13 @@ public static class FurnitureCatalog
         new("easel", "Kanvas Lukis", "Painting Easel", FurnitureCategory.Hobby, 400_000, new(0.8f, 0.7f), 1.6f, null, "#D7B377",
             [ActivityId.Draw], FrontStand),
         new("dog-bed", "Kasur Anjing", "Dog Bed", FurnitureCategory.Decor, 200_000, new(0.9f, 0.7f), 0.2f, null, "#8E5A3C", [], []),
+        new("aquarium", "Akuarium", "Aquarium", FurnitureCategory.Decor, 650_000, new(1.0f, 0.45f), 1.15f, null, "#7FC8E8",
+            [ActivityId.Relax], StandAt(0.6f), NeedsPower: true),
+        new("beanbag", "Kursi Bean Bag", "Beanbag", FurnitureCategory.Living, 300_000, new(0.9f, 0.9f), 0.6f, null, "#F28C38",
+            [ActivityId.Read, ActivityId.Relax], [new(new(0, 0.3f, 0.05f), 0, AnchorPose.Sit)]),
+        new("painting", "Lukisan Dinding", "Wall Painting", FurnitureCategory.Decor, 220_000, new(0.9f, 0.1f), 1.6f, null, "#F2B880", [], [], WallMounted: true),
+        new("arcade", "Mesin Arkade", "Arcade Machine", FurnitureCategory.Hobby, 2_200_000, new(0.8f, 0.7f), 1.8f, null, "#7B4AE2",
+            [ActivityId.Play], StandAt(0.7f), NeedsPower: true, Breakable: true, MinChapter: 2),
 
         // ---- bathroom
         new("toilet", "Kloset", "Toilet", FurnitureCategory.Bathroom, 600_000, new(0.5f, 0.7f), 0.8f, null, "#FFFFFF",
@@ -311,6 +318,8 @@ public static class FurnitureCatalog
             [ActivityId.Eat, ActivityId.Chat],
             [new(new(-0.45f, 0.45f, 0.75f), 180, AnchorPose.Sit), new(new(0.45f, 0.45f, 0.75f), 180, AnchorPose.Sit),
              new(new(-0.45f, 0.45f, -0.75f), 0, AnchorPose.Sit), new(new(0.45f, 0.45f, -0.75f), 0, AnchorPose.Sit)], Outdoor: true),
+        new("hammock", "Ayunan Jaring", "Hammock", FurnitureCategory.Outdoor, 450_000, new(1.0f, 2.6f), 1.4f, null, "#E9C46A",
+            [ActivityId.Nap, ActivityId.Relax], [new(new(0, 0.55f, 0.05f), 0, AnchorPose.Lie)], Outdoor: true),
         new("tree", "Pohon", "Tree", FurnitureCategory.Outdoor, 250_000, new(1.2f, 1.2f), 5f, "tree", "#3E8E41", [], [], Outdoor: true),
     ];
 

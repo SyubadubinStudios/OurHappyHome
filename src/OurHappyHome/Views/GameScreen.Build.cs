@@ -35,6 +35,7 @@ public sealed partial class GameScreen
     private static readonly string[] PaintColors =
     [
         "#F2E3C6", "#FFF4E0", "#F8DDE8", "#E7DDF0", "#D9E8F7", "#DDEFE6", "#FFF0C2", "#FFD8B5", "#CFE8C9", "#BFD7EA", "#F4C7C3", "#E9DCC9",
+        "#FFE3E3", "#E0F7FA", "#FCE4B6", "#D7CCE8", "#B5D99C", "#F7C59F", "#A8DADC", "#FFCAD4", "#C9ADA7", "#E2ECE9", "#FDFFB6", "#9BC1BC",
     ];
 
     private void EnterBuildMode()

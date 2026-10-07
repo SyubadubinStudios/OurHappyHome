@@ -60,9 +60,10 @@ kesukaan masing-masing), **minta tolong masak atau perbaiki**, **ajak ikut**, da
 
 ## Memasak
 
-Di kompor, pilih **Masak…** lalu pilih resep. Ada 14 resep, antara lain nasi goreng, telur dadar,
-ayam goreng, pancake, kue mangkuk, puding, cokelat hangat, susu, es limun, sup ayam, sate, salad dan
-kue ulang tahun. Setiap langkah adalah mini-game:
+Di kompor, pilih **Masak…** lalu pilih resep. Ada 20 resep, antara lain nasi goreng, telur dadar,
+ayam goreng, pancake, kue mangkuk, puding, cokelat hangat, susu, es limun, sup ayam, sate, salad,
+kue ulang tahun, serta (baru di v1.1) mi goreng, gado-gado, bubur ayam, pisang goreng, martabak manis
+dan es teh manis. Sup ayam dan bubur ayam membantu anggota yang sakit. Setiap langkah adalah mini-game:
 
 - **Timing**: tekan Spasi saat penanda masuk zona hijau.
 - **Tekan cepat**: tekan berkali-kali untuk mengisi bar.
@@ -74,7 +75,8 @@ menipis.
 
 ## Sekolah
 
-Di hari kerja pukul 06:30–13:00, pergi ke **Sekolah** (peta **M**), lalu pilih **Masuk kelas**. Ada tiga
+Di hari kerja pukul 06:30–13:00, pergi ke **Sekolah** (peta **M**), lalu pilih **Masuk kelas**, atau
+**Masuk ke dalam** untuk berjalan ke ruang kelas dan menemui Bu Guru Rina di mejanya. Ada tiga
 pelajaran per hari:
 
 - **Bahasa Inggris**: kosakata
@@ -86,6 +88,19 @@ pelajaran per hari:
 
 Nilai dicatat di **Jurnal → Rapor** dan menaikkan keahlian. Pengetahuan IPA juga membantu memperbaiki
 alat elektronik.
+
+## Masuk ke gedung kota
+
+**Sekolah**, **Supermarket** dan **Klinik** bisa dimasuki. Di depan pintunya pilih **Masuk ke dalam**,
+dan keluarga yang ikut masuk bersamamu.
+
+- **Ruang kelas:** papan tulis, 12 meja murid, dan meja Bu Guru Rina tempat **Ikut pelajaran**.
+- **Supermarket:** empat lorong rak, rak pendingin, dan kasir. Belanja dari kasir atau rak mana pun.
+- **Klinik:** pendaftaran, tempat tidur periksa, ruang tunggu, dan **dr. Sinta** yang bisa diajak ngobrol.
+  Periksa ke dokter di mejanya.
+
+Keluar lewat keset merah di depan pintu (**Keluar**). Gedung punya jam buka: sekolah Senin–Jumat
+06:30–15:00, supermarket 07:00–22:00, klinik 07:00–21:00.
 
 ## Uang
 
@@ -100,7 +115,9 @@ alat elektronik.
   ruang rahasia di balik rak buku, kebun, kolam renang dan rumah pohon. Sebagian terbuka di bab
   tertentu.
 - **Perabot:** pilih, arahkan, putar dengan **R**, lalu klik. Kotak hijau berarti muat, merah berarti tidak.
-- **Pindah/Jual, Cat, Lantai.**
+- **Pindah/Jual, Cat (24 warna), Lantai.**
+- Perabot baru di v1.1: akuarium, kursi bean bag, lukisan dinding, mesin arkade, dan ayunan jaring
+  untuk halaman.
 
 Judul rumah naik mengikuti jumlah ruangan: Rumah Kecil → Rumah Keluarga → Rumah Besar → Rumah Impian.
 
@@ -142,6 +159,16 @@ di Jurnal.
 Momen penting otomatis menjadi kenangan berisi foto, peserta, tempat, perasaan, dan perubahan
 hubungan. Contohnya sarapan pertama, masakan sempurna, keran yang menyembur, perjalanan, badai yang
 terlewati, dan ulang tahun. Buka album dengan **L**. Kenangan juga muncul dalam percakapan keluarga.
+
+Di album, klik **🖼** untuk mengganti bingkai foto (klasik, kayu, pastel, emas, film) dan **⭐** untuk
+menempel hingga tiga stiker. Klik ⭐ sekali lagi saat sudah ada tiga stiker untuk melepas semuanya.
+
+## Kostum
+
+Beli topi pesta, topi jerami, kupluk rajut, mahkota kertas atau bando telinga kucing di **Mal**. Buka
+**Lemari kostum** dari lemari baju di rumah atau dari panel **Barang (I)**, lalu pilih kostum untuk
+tiap anggota keluarga. Kostum membuat suasana hati senang, dan memakainya saat **Pesta Kostum** di
+kalender menambah keseruan.
 
 ## Menyimpan
 

@@ -35,6 +35,8 @@ public sealed class CharacterView
         public string? MarkerGlyph;
         public Node? Tag;
         public Mannequin? Fallback;
+        public Node? Hat;
+        public string? HatId;
     }
 
     private readonly Scene _scene;
@@ -43,9 +45,9 @@ public sealed class CharacterView
     private readonly ModelLibrary _models;
     private readonly Node _root;
     private readonly Dictionary<MemberId, Rig> _rigs = [];
-    private readonly Dictionary<int, (Node Node, Node Model, PetKind Kind)> _pets = [];
-    private readonly Dictionary<string, Mannequin> _npcs = [];
-    private readonly Dictionary<(Scenario, int), Node> _actors = [];
+    private readonly Dictionary<int, (Node Node, Node Model, AnimatedFigure? Figure)> _pets = [];
+    private readonly Dictionary<string, (Node Node, AnimatedFigure? Figure, Mannequin? Body)> _npcs = [];
+    private readonly Dictionary<(Scenario, int), (Node Node, AnimatedFigure? Figure)> _actors = [];
     private readonly Node _ring;
     private readonly Node _flashlight;
     private float _time;
@@ -180,8 +182,9 @@ public sealed class CharacterView
             return;
         }
 
-        // Cross-fade between clips.
-        Play(rig, m.Animation);
+        // Cross-fade between clips; standing members talk while their bubble is up.
+        string? text = m.Bubble is not null && session.Now <= m.BubbleUntil ? m.Bubble : null;
+        Play(rig, text is not null && m.Animation == "Idle" && !m.Moving && m.Anchor is null ? "Talk" : m.Animation);
         if (rig.Previous is not null)
         {
             rig.Fade = MathF.Min(1f, rig.Fade + (dt * 5f));
@@ -205,6 +208,15 @@ public sealed class CharacterView
         }
 
         rig.Fallback?.Animate(m.Moving, m.Running, _time);
+
+        // Costume hat (hidden while sleeping).
+        string? hat = m.Task is { Activity: ActivityId.Sleep, Phase: TaskPhase.Performing } ? null : m.Accessory;
+        if (hat != rig.HatId)
+        {
+            rig.Hat?.Remove();
+            rig.Hat = hat is null ? null : BuildHat(rig.Model, hat, rig.Height);
+            rig.HatId = hat;
+        }
 
         Vector3 position = new(m.Position.X, 0f, m.Position.Y);
         Quaternion rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, m.Yaw);
@@ -245,7 +257,6 @@ public sealed class CharacterView
         rig.Model.SetTransform(Vector3.Transform(modelOffset, Quaternion.Identity), modelRotation, Vector3.One);
 
         // Speech bubble.
-        string? text = m.Bubble is not null && session.Now <= m.BubbleUntil ? m.Bubble : null;
         if (text != rig.BubbleText)
         {
             rig.Bubble?.Remove();
@@ -315,6 +326,60 @@ public sealed class CharacterView
         }
     }
 
+    /// <summary>A small costume piece sitting on top of the head (models face +Z, feet at y = 0).</summary>
+    private Node BuildHat(Node model, string id, float height)
+    {
+        Node hat = model.CreateChild($"hat-{id}");
+        float s = Math.Clamp(height / 1.55f, 0.85f, 1.1f);
+        hat.Position = new Vector3(0f, height - (0.07f * s), -0.01f);
+        hat.Scale = new Vector3(s);
+        switch (id)
+        {
+            case "party-hat":
+                hat.EulerAngles = new Vector3(0f, 0f, 0.18f);
+                _m.Cone(hat, Vector3.Zero, 0.085f, 0.24f, _t.Solid("#FF5DA2", 0.6f));
+                _m.Cylinder(hat, new Vector3(0f, 0.08f, 0f), 0.06f, 0.025f, _t.Solid("#FFD166", 0.6f), true);
+                _m.Sphere(hat, new Vector3(0f, 0.25f, 0f), new Vector3(0.06f), _t.Solid("#FFD166", 0.7f), true);
+                break;
+            case "straw-hat":
+                _m.Cylinder(hat, new Vector3(0f, 0.01f, 0f), 0.24f, 0.02f, _t.Solid("#E9C46A", 0.9f));
+                _m.Cylinder(hat, new Vector3(0f, 0.07f, 0f), 0.12f, 0.11f, _t.Solid("#E9C46A", 0.9f));
+                _m.Cylinder(hat, new Vector3(0f, 0.04f, 0f), 0.123f, 0.03f, _t.Solid("#E63946", 0.7f));
+                break;
+            case "beanie":
+                _m.Sphere(hat, new Vector3(0f, 0.01f, 0f), new Vector3(0.27f, 0.19f, 0.27f), _t.Solid("#4361EE", 0.95f), true);
+                _m.Cylinder(hat, new Vector3(0f, -0.04f, 0f), 0.13f, 0.05f, _t.Solid("#F1FAEE", 0.95f), true);
+                _m.Sphere(hat, new Vector3(0f, 0.11f, 0f), new Vector3(0.08f), _t.Solid("#F1FAEE", 0.95f), true);
+                break;
+            case "crown":
+                {
+                    Material gold = _t.Solid("#F4C430", 0.35f, 0.6f);
+                    _m.Cylinder(hat, new Vector3(0f, 0.03f, 0f), 0.11f, 0.06f, gold);
+                    for (int i = 0; i < 5; i++)
+                    {
+                        float a = i * MathF.Tau / 5f;
+                        _m.Cone(hat, new Vector3(MathF.Sin(a) * 0.1f, 0.06f, MathF.Cos(a) * 0.1f), 0.03f, 0.07f, gold);
+                    }
+
+                    _m.Sphere(hat, new Vector3(0f, 0.04f, 0.11f), new Vector3(0.03f), _t.Solid("#E63946", 0.2f, emissive: 0.4f), true);
+                    break;
+                }
+
+            case "cat-ears":
+                foreach (float x in new[] { -0.075f, 0.075f })
+                {
+                    _m.Cone(hat, new Vector3(x, 0f, 0f), 0.045f, 0.1f, _t.Solid("#3B2A20", 0.8f), true);
+                    _m.Cone(hat, new Vector3(x, 0.005f, 0.012f), 0.025f, 0.065f, _t.Solid("#F7A1C4", 0.8f), true);
+                }
+
+                _m.Cylinder(hat, new Vector3(0f, -0.01f, 0f), 0.115f, 0.015f, _t.Solid("#3B2A20", 0.8f), true);
+                break;
+        }
+
+        hat.SetShadowsRecursive(true, true);
+        return hat;
+    }
+
     /// <summary>World position of a member's head, for UI anchoring.</summary>
     public Vector3 HeadPosition(FamilyMember m) => new(m.Position.X, (m.Anchor?.Y ?? 0f) + _rigs[m.Id].Height, m.Position.Y);
 
@@ -324,23 +389,38 @@ public sealed class CharacterView
     {
         foreach (Pet pet in session.State.Pets)
         {
-            if (!_pets.TryGetValue(pet.Id, out (Node Node, Node Model, PetKind Kind) visual))
+            if (!_pets.TryGetValue(pet.Id, out (Node Node, Node Model, AnimatedFigure? Figure) visual))
             {
                 Node node = _scene.CreateNode(_root, $"pet-{pet.Id}");
                 Node model = node.CreateChild("pet-model");
-                string modelName = pet.Kind == PetKind.Cat ? "cat" : "dog";
                 float height = pet.Kind switch { PetKind.Dog => 0.62f, PetKind.Cat => 0.42f, _ => 0.3f };
-                if (pet.Kind is PetKind.Dog or PetKind.Cat && _models.Height(modelName, model, height) is not null)
-                {
-                    model.SetShadowsRecursive(true, true);
-                }
-                else
+                AnimatedFigure? figure = pet.Kind is PetKind.Dog or PetKind.Cat
+                    ? AnimatedFigure.TryLoad(_scene, model, pet.Kind == PetKind.Cat ? "cat" : "dog", height)
+                    : null;
+                if (figure is null)
                 {
                     _m.Sphere(model, new Vector3(0f, height * 0.5f, 0f), new Vector3(height * 0.9f, height, height * 1.2f), _t.Solid(pet.Kind == PetKind.Rabbit ? "#F2F2F2" : "#D9A066"));
                 }
 
-                visual = (node, model, pet.Kind);
+                visual = (node, model, figure);
                 _pets[pet.Id] = visual;
+            }
+
+            if (visual.Figure is { } petFigure)
+            {
+                string clip = pet.State switch
+                {
+                    PetState.Sleep => "Sleep",
+                    PetState.Bark => "Bark",
+                    PetState.Hide => "Sit",
+                    _ when pet.Moving => pet.State is PetState.Play or PetState.Follow ? "Run" : "Walk",
+                    PetState.Eat => "Sit",
+                    _ => "Idle",
+                };
+                petFigure.Play(clip, session.EffectiveSpeed > 4f ? 2f : 1f);
+                petFigure.Update(dt);
+                visual.Node.SetTransform(new Vector3(pet.Position.X, 0f, pet.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, pet.Yaw), Vector3.One);
+                continue;
             }
 
             float bob = pet.Moving ? MathF.Abs(MathF.Sin(_time * 14f)) * 0.06f : 0f;
@@ -353,6 +433,7 @@ public sealed class CharacterView
 
         foreach (int id in _pets.Keys.Where(id => session.State.Pets.All(p => p.Id != id)).ToList())
         {
+            _pets[id].Figure?.Stop();
             _pets[id].Node.Remove();
             _pets.Remove(id);
         }
@@ -364,25 +445,32 @@ public sealed class CharacterView
     {
         foreach (Npc npc in session.Npcs)
         {
-            if (!_npcs.TryGetValue(npc.Id, out Mannequin? body))
+            if (!_npcs.TryGetValue(npc.Id, out (Node Node, AnimatedFigure? Figure, Mannequin? Body) visual))
             {
                 Node node = _scene.CreateNode(_root, $"npc-{npc.Id}");
-                body = new Mannequin(_scene, _m, _t, node, npc.Color, npc.Height, npc.Id switch
+                AnimatedFigure? figure = AnimatedFigure.TryLoad(_scene, node, npc.Model, npc.Height);
+                Mannequin? body = figure is not null ? null : new Mannequin(_scene, _m, _t, node, npc.Color, npc.Height, npc.Id switch
                 {
                     "grandma" => MannequinStyle.Grandma,
                     "teacher" => MannequinStyle.Teacher,
                     "budi" => MannequinStyle.Hat,
                     _ => MannequinStyle.Kid,
                 });
-                _npcs[npc.Id] = body;
+                visual = (node, figure, body);
+                _npcs[npc.Id] = visual;
             }
 
             bool present = npc.Present(session.Hour);
-            body.Root.Visible = present;
+            visual.Node.Visible = present;
             if (present)
             {
-                body.Root.SetTransform(new Vector3(npc.Position.X, 0f, npc.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, npc.Yaw), Vector3.One);
-                body.Animate(npc.Moving, false, _time);
+                visual.Node.SetTransform(new Vector3(npc.Position.X, 0f, npc.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, npc.Yaw), Vector3.One);
+                visual.Body?.Animate(npc.Moving, false, _time);
+                if (visual.Figure is { } figure)
+                {
+                    figure.Play(npc.Talking ? "Talk" : npc.Moving ? "Walk" : "Idle");
+                    figure.Update(dt);
+                }
             }
         }
     }
@@ -399,14 +487,26 @@ public sealed class CharacterView
             {
                 (Scenario, int) key = (scenario, actor.Id);
                 alive.Add(key);
-                if (!_actors.TryGetValue(key, out Node? node))
+                if (!_actors.TryGetValue(key, out (Node Node, AnimatedFigure? Figure) visual))
                 {
-                    node = CreateActor(actor.Kind);
-                    _actors[key] = node;
+                    visual = CreateActor(actor.Kind);
+                    _actors[key] = visual;
                 }
 
+                Node node = visual.Node;
                 node.Visible = actor.Visible;
                 float bob = actor.Moving ? MathF.Abs(MathF.Sin(_time * 12f)) * 0.05f : 0f;
+                if (visual.Figure is { } figure)
+                {
+                    figure.Play(actor.Moving ? (actor.Speed > 2f ? "Run" : "Walk") : "Idle");
+                    figure.Update(dt);
+                    bob = 0f;
+                }
+                else if (actor.Kind == ActorKind.Monkey && !actor.Moving)
+                {
+                    bob = MathF.Abs(MathF.Sin(_time * 5f)) * 0.08f;
+                }
+
                 node.SetTransform(new Vector3(actor.Position.X, bob, actor.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, actor.Yaw), Vector3.One);
                 if (node.Tag == 1 && node.Children.Count > 0)
                 {
@@ -423,22 +523,41 @@ public sealed class CharacterView
 
         foreach ((Scenario, int) key in _actors.Keys.Where(k => !alive.Contains(k)).ToList())
         {
-            _actors[key].Remove();
+            _actors[key].Figure?.Stop();
+            _actors[key].Node.Remove();
             _actors.Remove(key);
         }
     }
 
-    private Node CreateActor(ActorKind kind)
+    private (Node Node, AnimatedFigure? Figure) CreateActor(ActorKind kind)
     {
         Node node = _scene.CreateNode(_root, $"actor-{kind}");
+        string? rigged = kind switch
+        {
+            ActorKind.Cat => "cat",
+            ActorKind.Police => "police",
+            ActorKind.Firefighter => "firefighter",
+            ActorKind.Rescuer => "rescuer",
+            ActorKind.Stranger => "stranger",
+            _ => null,
+        };
+        if (rigged is not null && AnimatedFigure.TryLoad(_scene, node, rigged, kind == ActorKind.Cat ? 0.42f : 1.75f) is { } figure)
+        {
+            return (node, figure);
+        }
+
+        // Rodin props for the monkey and the snake; primitives if they are missing.
+        string? prop = kind switch { ActorKind.Monkey => "monkey", ActorKind.Snake => "snake", _ => null };
+        if (prop is not null && _models.Height(prop, node, kind == ActorKind.Monkey ? 0.85f : 0.55f) is not null)
+        {
+            node.SetShadowsRecursive(true, true);
+            return (node, null);
+        }
+
         switch (kind)
         {
             case ActorKind.Cat:
-                if (_models.Height("cat", node, 0.42f) is null)
-                {
-                    _m.Sphere(node, new Vector3(0f, 0.2f, 0f), new Vector3(0.3f, 0.3f, 0.5f), _t.Solid("#E8913A"));
-                }
-
+                _m.Sphere(node, new Vector3(0f, 0.2f, 0f), new Vector3(0.3f, 0.3f, 0.5f), _t.Solid("#E8913A"));
                 break;
             case ActorKind.Monkey:
                 {
@@ -499,7 +618,7 @@ public sealed class CharacterView
         }
 
         node.SetShadowsRecursive(true, true);
-        return node;
+        return (node, null);
     }
 }
 

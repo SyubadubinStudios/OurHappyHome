@@ -14,9 +14,9 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - [x] 12 animasi (Idle, Walk, Run, Wave, Sit, Sleep, Cook, Cheer, Scared, Talk, Work, Read), dirender lewat Blender MCP
 - [x] Uji skinning & klip animasi di ThreeNet
 - [x] Potret HUD & ikon aplikasi dari concept art
-- [~] Suara ElevenLabs: 6 kalimat terekam; sisanya memakai babble sintetis (Rodin menolak permintaan berikutnya)
-- [ ] Model tetangga, monyet, ular, petugas (sementara memakai mannequin prosedural)
-- [ ] Rig & animasi hewan peliharaan (sementara memakai animasi prosedural)
+- [x] Suara ElevenLabs: 6 kalimat terekam (sisanya selesai di v1.1)
+- [x] Model tetangga, monyet, ular, petugas (selesai di v1.1)
+- [x] Rig & animasi hewan peliharaan (selesai di v1.1)
 
 ### Simulasi (`OurHappyHome.Core`)
 - [x] Waktu, kalender (tanggal dari desain, ulang tahun, acara berulang), kecepatan 1/2/4×, malam dipercepat
@@ -59,9 +59,37 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - [ ] Tanda tangan kode (Authenticode / Developer ID) dan notarisasi
 - [x] CI (build + test 3 OS) dan rilis otomatis installer ke GitHub Releases
 
+## 2026-10-08 · v1.1
+
+### Aset
+- [x] 39 kalimat suara baru: keluarga, Nenek Sari, Pak Budi, Dimas, Bu Guru Rina, dr. Sinta (total 45)
+- [x] Model Rodin + rig Blender MCP (12 animasi): Nenek Sari, Pak Budi, Dimas, Bu Guru Rina, dr. Sinta,
+      polisi, pemadam kebakaran, tim SAR, orang asing
+- [x] Anjing & kucing berdiri dari Rodin, rig berkaki empat baru (`rig_animal.py`): Idle, Walk, Run, Sit, Sleep, Bark
+- [x] Model monyet, ular dan pohon dari Rodin (dioptimasi sebagai prop)
+- [x] `preview_poses.py` untuk merender beberapa pose sekaligus; kamera `preview.py` diperbaiki
+
+### Game
+- [x] `AnimatedFigure`: model ber-rig per instance untuk tetangga, pengunjung skenario dan hewan, dengan cross-fade
+- [x] Animasi Talk saat berbicara; tetangga berhenti dan menghadap pemain saat diajak ngobrol (dengan suara)
+- [x] Interior sekolah, supermarket dan klinik: masuk/keluar bersama keluarga, meja layanan, Bu Guru Rina di kelas,
+      dr. Sinta di klinik, kamera langsung pindah
+- [x] 6 resep, 4 bahan, 5 perabot, 12 warna cat baru
+- [x] Kostum & topi (5 item, lemari kostum dari lemari baju atau panel barang), bonus saat Pesta Kostum
+- [x] Album dengan 5 bingkai dan stiker, tersimpan di save
+- [x] Kalimat dan kunci suara diselaraskan (mis. "Aku takut... gelap sekali.", "Terima kasih, Kakak!")
+- [ ] Ekspresi wajah dengan shape key & sinkronisasi bibir sungguhan (dipindah ke v1.2)
+
+### Kualitas
+- [x] 41 test xUnit (baru: interior, belanja di dalam supermarket, resep, kostum & dekorasi album tersimpan)
+- [x] 28 screenshot otomatis (8 baru) dan gambar rig tetangga & hewan
+
 ## Catatan perbaikan selama pengembangan
 - Titik pendekatan kursi makan semula berada di dalam meja, sehingga AI tidak pernah sampai. Sekarang titiknya dihitung di luar footprint, dan perjalanan punya batas waktu.
 - Bahan makanan habis di tengah minggu. Sekarang orang tua berbelanja otomatis saat persediaan menipis.
 - Barang yang rusak tanpa aktivitas "Perbaiki" tidak bisa diperbaiki. Sekarang semua barang rusak bisa diperbaiki.
 - Makan bersama jarang terjadi. Sekarang ada panggilan "ayo makan bersama" saat masakan selesai dan pada pukul 07:00 & 18:45.
 - Label nama kosong karena teks yang dipusatkan tergambar di luar tekstur. Sekarang teks digambar mulai dari padding.
+- (v1.1) AI mengepel di dapur padahal genangan ada di kamar mandi, sehingga skenario keran bocor tidak pernah selesai dan tidak ada yang memasak. Sekarang tugas Bersih-bersih menuju genangan terdekat.
+- (v1.1) Topi kostum muncul raksasa di pinggang. Penyebabnya: pemutar animasi milik pengunjung yang sudah dihapus masih berjalan, dan ThreeNet memakai ulang id node-nya untuk node baru. Sekarang animasi dihentikan sebelum node dihapus.
+- (v1.1) Pratinjau "side" di Blender memutar kamera 90°, sehingga anjing & kucing tampak berbaring. Kamera pratinjau sekarang memakai sumbu atas yang benar.

@@ -96,6 +96,11 @@ public sealed partial class GameSession
             Bus.Sound("fanfare");
             Bus.Publish(new MusicEvent(MusicMood.Celebration));
             Bus.Effect(EffectKind.Confetti, Controlled.Position, 2.5f, 2f);
+            if (State.Member(MemberId.Father) is { Away: false } father)
+            {
+                Say(father, Loc.T("Hebat! Ayah bangga sama kamu!", "Great job! Dad is proud of you!"), "dad_cheer");
+            }
+
             CreateMemory(Loc.T($"Bab {chapter.Number}: {chapter.Title}", $"Chapter {chapter.Number}: {chapter.Title}"),
                 Loc.T($"Keluarga menyelesaikan bab \"{chapter.Title}\" bersama-sama.", $"The family completed \"{chapter.Title}\" together."),
                 MemoryKind.Chapter, EmotionalOutcome.Proud, FamilyNames.All, LocationName(Controlled), 4f, $"chapter:{chapter.Number}");

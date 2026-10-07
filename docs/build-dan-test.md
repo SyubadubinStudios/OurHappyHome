@@ -12,7 +12,7 @@
 ```bash
 dotnet build OurHappyHome.slnx                       # build semua
 dotnet run --project src/OurHappyHome                # main
-dotnet test                                          # 37 test simulasi (±6 detik)
+dotnet test                                          # 41 test simulasi (±8 detik)
 dotnet run --project src/OurHappyHome -- --screenshots docs/images   # ambil ulang semua screenshot
 dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket rilis
 ```
@@ -35,6 +35,10 @@ dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket
 - membangun ruangan memakan biaya dan menambah dinding, dan perabot tidak bisa menumpuk
 - tanggal-tanggal kalender dari dokumen desain, hadiah yang sesuai kesukaan, soal sekolah valid,
   dan semua pintu masuk tempat di kota bisa dicapai
+- interior tertutup dinding dengan titik masuk, keluar dan layanan yang bebas; keluarga bisa masuk,
+  belanja di kasir, lalu keluar lagi dari supermarket
+- semua resep memakai bahan yang ada di katalog; kostum butuh barangnya, dan kostum serta dekorasi
+  album ikut tersimpan
 
 ## Mode screenshot
 

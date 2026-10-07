@@ -42,6 +42,20 @@ skenario otomatis lewat jalur kode yang sama dengan pemain.
 | **Menu jeda** | |
 | ![](images/20-pause-menu.png) | |
 
+## Baru di v1.1
+
+| Tetangga & hewan peliharaan yang di-rig (Nenek Sari, Coco, Mochi) | Monyet pencuri makanan |
+|---|---|
+| ![](images/21-neighbours-pets.png) | ![](images/22-monkey-thief.png) |
+| **Orang asing mencurigakan** (model Rodin + rig Blender) | **Ruang kelas yang bisa dimasuki** |
+| ![](images/23-stranger-visitor.png) | ![](images/24-interior-classroom.png) |
+| **Supermarket: rak & kasir** | **Klinik dengan dr. Sinta** |
+| ![](images/25-interior-supermarket.png) | ![](images/26-interior-clinic.png) |
+| **Kostum keluarga** (topi jerami, mahkota, telinga kucing, topi pesta, kupluk) | **Lemari kostum** |
+| ![](images/27-family-costumes.png) | ![](images/28-wardrobe.png) |
+
+Album keluarga (gambar 19) sekarang punya bingkai (klasik, kayu, pastel, emas, film) dan stiker.
+
 ## Seni & aset
 
 | Concept art keluarga | Interior rumah |
@@ -51,3 +65,5 @@ skenario otomatis lewat jalur kode yang sama dengan pemain.
 | ![](images/rig-father-poses.png) | ![](images/rig-family-poses.png) |
 | **Perabot & hewan dari Rodin** | **Uji skinning di ThreeNet** |
 | ![](images/rodin-props.png) | ![](images/threenet-skinning-test.png) |
+| **Tetangga & petugas v1.1: Walk** (Nenek Sari, Pak Budi, Dimas, Bu Guru Rina, polisi, pemadam, orang asing, tim SAR) | **Rig hewan berkaki empat**: Bark, Idle, Run, Sit, Sleep, Walk |
+| ![](images/rig-npc-walk.png) | ![](images/rig-pets-poses.png) |

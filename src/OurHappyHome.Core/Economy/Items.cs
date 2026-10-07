@@ -8,6 +8,7 @@ public enum ItemCategory
     Hobby,
     Pet,
     Garden,
+    Costume,
 }
 
 public sealed record ItemDef(string Id, string NameId, string NameEn, string Icon, ItemCategory Category, long Price, string Shop, string[] Tags)
@@ -34,6 +35,10 @@ public static class ItemCatalog
         new("fruit", "Buah & Lemon", "Fruit & Lemons", "🍋", ItemCategory.Ingredient, 16_000, Supermarket, []),
         new("vegetables", "Sayuran", "Vegetables", "🥕", ItemCategory.Ingredient, 10_000, Supermarket, []),
         new("snack", "Roti & Camilan", "Bread & Snacks", "🥐", ItemCategory.Ingredient, 9_000, Supermarket, []),
+        new("noodles", "Mi", "Noodles", "🍜", ItemCategory.Ingredient, 8_000, Supermarket, []),
+        new("banana", "Pisang", "Bananas", "🍌", ItemCategory.Ingredient, 12_000, Supermarket, []),
+        new("peanuts", "Kacang Tanah", "Peanuts", "🥜", ItemCategory.Ingredient, 12_000, Supermarket, []),
+        new("tea", "Teh", "Tea", "🍵", ItemCategory.Ingredient, 8_000, Supermarket, []),
         new("flashlight", "Senter", "Flashlight", "🔦", ItemCategory.Safety, 45_000, Supermarket, []),
         new("batteries", "Baterai", "Batteries", "🔋", ItemCategory.Safety, 20_000, Supermarket, []),
         new("candle", "Lilin", "Candles", "🕯", ItemCategory.Safety, 8_000, Supermarket, []),
@@ -57,6 +62,11 @@ public static class ItemCatalog
         new("camera", "Kamera Instan", "Instant Camera", "📷", ItemCategory.Hobby, 450_000, Mall, ["photography"]),
         new("bicycle", "Sepeda", "Bicycle", "🚲", ItemCategory.Hobby, 900_000, Mall, ["cycling", "outdoor"]),
         new("tent", "Tenda Kemah", "Camping Tent", "⛺", ItemCategory.Hobby, 350_000, Mall, ["outdoor"]),
+        new("party-hat", "Topi Pesta", "Party Hat", "🥳", ItemCategory.Costume, 25_000, Mall, ["party", "cute"]),
+        new("straw-hat", "Topi Jerami", "Straw Hat", "👒", ItemCategory.Costume, 60_000, Mall, ["outdoor", "gardening"]),
+        new("beanie", "Kupluk Rajut", "Knitted Beanie", "🧶", ItemCategory.Costume, 55_000, Mall, ["fashion", "cute"]),
+        new("crown", "Mahkota Kertas", "Paper Crown", "👑", ItemCategory.Costume, 30_000, Mall, ["cute", "party"]),
+        new("cat-ears", "Bando Telinga Kucing", "Cat-Ear Headband", "🐱", ItemCategory.Costume, 35_000, Mall, ["cute", "fashion"]),
         new("guitar", "Gitar Kecil", "Ukulele", "🎸", ItemCategory.Gift, 250_000, Mall, ["music"]),
     ];
 

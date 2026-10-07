@@ -115,6 +115,26 @@ public sealed partial class GameSession
             }
         }
 
+        if (Map.InteriorAt(p) is { } interior)
+        {
+            float exit = Vector2.Distance(interior.Exit, p);
+            if (exit <= 2f)
+            {
+                targets.Add(new InteractionTarget("interior-exit", Loc.T("Pintu keluar", "Exit door"), "🚪", new Vector3(interior.Exit.X, 2.2f, interior.Exit.Y), exit + 0.3f,
+                    [new("exit", Loc.T("Keluar", "Go outside"), "🚪", ExitInterior)]));
+            }
+
+            Place place = Map.Get(interior.Place);
+            foreach ((Vector2 service, int i) in interior.Services.Select((s, i) => (s, i)))
+            {
+                float d = Vector2.Distance(service, p);
+                if (d <= 2f && PlaceOptions(place, inside: true) is { Count: > 0 } options)
+                {
+                    targets.Add(new InteractionTarget($"service:{interior.Place}:{i}", ServiceName(interior.Place, i), place.Icon, new Vector3(service.X, 2f, service.Y), d, options));
+                }
+            }
+        }
+
         foreach (TownFeature feature in Map.Features)
         {
             if (feature.Kind is not (FeatureKind.Campfire or FeatureKind.Tent or FeatureKind.FerrisWheel or FeatureKind.Carousel or FeatureKind.Pond or FeatureKind.Playground or FeatureKind.Sand))
@@ -251,7 +271,12 @@ public sealed partial class GameSession
         State.Relationships.Change(me.Id, other.Id, 4f);
         StartTask(other, ActivityId.Play, null, -1, target: other.Position, minutes: 15);
         Bus.Effect(EffectKind.Stars, other.Position, 1.6f);
-        Say(other, other.IsChild ? Loc.T("Yeay! Seru banget!", "Yay! So much fun!") : Loc.T("Ayo! Siapa takut!", "You're on!"), other.Id == MemberId.OlderSister ? "os_cheer" : other.Id == MemberId.YoungerSister ? "ys_cheer" : null);
+        Say(other, other.Id switch
+        {
+            MemberId.YoungerSister => Loc.T("Hore! Hore! Seru sekali!", "Hooray! Hooray! So much fun!"),
+            MemberId.OlderSister or MemberId.Player => Loc.T("Yeay! Seru banget!", "Yay! So much fun!"),
+            _ => Loc.T("Ayo! Siapa takut!", "You're on!"),
+        }, other.Id == MemberId.OlderSister ? "os_cheer" : other.Id == MemberId.YoungerSister ? "ys_cheer" : null);
         if (Random.Chance(0.3f))
         {
             CreateMemory(Loc.T($"Bermain bersama {other.Name}", $"Playing with {other.Name}"),
@@ -334,7 +359,7 @@ public sealed partial class GameSession
         other.FollowTarget = me.Id;
         other.RescueTimer = 0f;
         Bus.Notice(Loc.T($"{other.Name} ikut kamu. Bawa ke tempat aman!", $"{other.Name} is with you. Get to safety!"), "🤝", NoticeKind.Good);
-        Say(other, Loc.T("Terima kasih! Ayo pergi!", "Thank you! Let's go!"),
+        Say(other, other.Id == MemberId.YoungerSister ? Loc.T("Terima kasih, Kakak!", "Thank you, big brother!") : Loc.T("Terima kasih! Ayo pergi!", "Thank you! Let's go!"),
             other.Id switch { MemberId.YoungerSister => "ys_thanks", MemberId.OlderSister => "os_thanks", MemberId.Mother => "mom_thanks", MemberId.Father => "dad_thanks", _ => null });
         Say(me, Loc.T("Ketemu! Ayo ke tempat aman!", "Found you! Let's get to safety!"), me.Id == MemberId.Player ? "boy_found" : null);
         Scenario?.OnRescued(me, other);
@@ -472,6 +497,11 @@ public sealed partial class GameSession
             }
 
             return o;
+        }
+
+        if (item.DefId == "wardrobe")
+        {
+            o.Add(new("dress-up", Loc.T("Pilih kostum & topi", "Pick costumes & hats"), "👒", () => Bus.Publish(new OpenPanelEvent("wardrobe"))));
         }
 
         foreach (ActivityId activity in item.Def.Activities)
@@ -698,8 +728,9 @@ public sealed partial class GameSession
                         MemoryKind.Play, EmotionalOutcome.Joyful, [State.Controlled], LocationName(Controlled), 1f, $"npc:{npc.Id}", photo: false);
                 }
 
-                string line = npc.Line(Random.Range(0, 3));
-                Bus.Publish(new SpeechEvent(null, npc.Name, line));
+                int index = Random.Range(0, npc.LinesId.Length);
+                Bus.Publish(new SpeechEvent(null, npc.Name, npc.Line(index), $"npc_{npc.Id}_{index}"));
+                npc.TalkTo(Controlled.Position);
                 Controlled.Needs.Add(NeedKind.Social, 10);
             }),
         ];
@@ -750,19 +781,69 @@ public sealed partial class GameSession
         return o;
     }
 
+    // --------------------------------------------------------------- costumes
+
+    /// <summary>Puts on (or takes off, with null) a costume from the family dress-up box.</summary>
+    public bool SetAccessory(MemberId id, string? item)
+    {
+        FamilyMember m = State.Member(id);
+        if (item is not null && (!State.Inventory.Has(item) || Economy.ItemCatalog.Get(item).Category != Economy.ItemCategory.Costume))
+        {
+            return false;
+        }
+
+        m.Accessory = item;
+        if (item is not null)
+        {
+            m.Mood.Add("costume", Loc.T("Kostum baru!", "New costume!"), 6, MoodKind.Happy, Now, 180);
+            Bus.Effect(EffectKind.Sparkles, m.Position, 1f);
+            if (Time.Calendar.EventsOn(Date).Any(e => e.Kind == Time.CalendarEventKind.CostumeParty))
+            {
+                m.Needs.Add(NeedKind.Fun, 15);
+            }
+        }
+
+        return true;
+    }
+
     // ----------------------------------------------------------------- places
 
-    private List<InteractionOption> PlaceOptions(Place place)
+    private static string ServiceName(PlaceId place, int index) => (place, index) switch
+    {
+        (PlaceId.School, _) => Loc.T("Meja Bu Guru", "Teacher's desk"),
+        (PlaceId.Supermarket, 0) => Loc.T("Kasir", "Cashier"),
+        (PlaceId.Supermarket, _) => Loc.T("Rak belanja", "Shop shelves"),
+        (PlaceId.Clinic, 0) => Loc.T("Meja dokter", "Doctor's desk"),
+        (PlaceId.Clinic, _) => Loc.T("Pendaftaran", "Reception"),
+        _ => WorldMap.Name(place),
+    };
+
+    /// <summary>Whether a building with an interior lets people in right now (and why not).</summary>
+    private (bool Open, string Reason) InteriorOpen(PlaceId place) => place switch
+    {
+        PlaceId.School => (Date.IsSchoolDay && Hour is >= 6.5f and < 15f, Loc.T("Sekolah buka Senin-Jumat 06:30-15:00", "School is open Mon-Fri 06:30-15:00")),
+        PlaceId.Supermarket => (Hour is >= 7f and < 22f, Loc.T("Toko tutup", "Closed")),
+        PlaceId.Clinic => (Hour is >= 7f and < 21f, Loc.T("Klinik buka 07:00-21:00", "The clinic is open 07:00-21:00")),
+        _ => (true, ""),
+    };
+
+    private List<InteractionOption> PlaceOptions(Place place, bool inside = false)
     {
         List<InteractionOption> o = [];
         FamilyMember me = Controlled;
         int people = 1 + State.Party.Count;
+        if (!inside && Map.InteriorFor(place.Id) is not null)
+        {
+            (bool isOpen, string reason) = InteriorOpen(place.Id);
+            o.Add(new("enter", Loc.T("Masuk ke dalam", "Go inside"), "🚪", () => EnterInterior(place.Id), isOpen, reason));
+        }
+
         switch (place.Id)
         {
             case PlaceId.School:
                 bool open = Date.IsSchoolDay && Hour is >= 6.5f and < 13f;
                 bool done = State.School.LessonDay == Clock.DayIndex;
-                o.Add(new("lessons", Loc.T("Masuk kelas", "Go to class"), "🏫", () =>
+                o.Add(new("lessons", inside ? Loc.T("Ikut pelajaran", "Join the lesson") : Loc.T("Masuk kelas", "Go to class"), "🏫", () =>
                 {
                     PendingMiniGame = new MiniGameRequest("school", "");
                     Bus.Publish(PendingMiniGame);
@@ -995,7 +1076,7 @@ public sealed partial class GameSession
         {
             CreateMemory(Loc.T("Nilai sempurna!", "Top marks!"), Loc.T($"{me.Name} mendapat nilai A dan dipuji Bu Guru Rina.", $"{me.Name} got an A and Ms. Rina was very proud."),
                 MemoryKind.School, EmotionalOutcome.Proud, [me.Id], WorldMap.Name(PlaceId.School), 2f, "top-marks");
-            Say(me, Loc.T("Yes! Berhasil!", "Yes! I did it!"), "boy_cheer");
+            Say(me, Loc.T("Yes! Aku berhasil!", "Yes! I did it!"), "boy_cheer");
         }
     }
 

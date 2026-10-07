@@ -459,6 +459,64 @@ public sealed partial class GameSession
         }
     }
 
+    // -------------------------------------------------------------- interiors
+
+    /// <summary>The building the controlled member is inside, if any.</summary>
+    public Interior? CurrentInterior => Map.InteriorAt(Controlled.Position);
+
+    /// <summary>Walks the controlled member (and the party) through the door of a town building.</summary>
+    public void EnterInterior(PlaceId place)
+    {
+        if (Map.InteriorFor(place) is not { } interior)
+        {
+            return;
+        }
+
+        MoveGroup(interior.Spawn, interior.SpawnYaw);
+        Bus.Sound("door");
+        Bus.Notice(Loc.T($"Masuk ke {interior.Name}", $"Entered the {interior.Name}"), WorldMap.Icon(place), NoticeKind.Info);
+    }
+
+    /// <summary>Back out to the street in front of the building.</summary>
+    public void ExitInterior()
+    {
+        if (CurrentInterior is not { } interior)
+        {
+            return;
+        }
+
+        Place place = Map.Get(interior.Place);
+        float yaw = place.EntranceYaw + MathF.PI;
+        MoveGroup(place.Entrance, yaw);
+        Bus.Sound("door");
+    }
+
+    private void MoveGroup(Vector2 position, float yaw)
+    {
+        FamilyMember player = Controlled;
+        CancelTask(player);
+        player.Position = position;
+        player.Yaw = yaw;
+        Vector2 back = -new Vector2(MathF.Sin(yaw), MathF.Cos(yaw));
+        Vector2 side = new(back.Y, -back.X);
+        int i = 0;
+        foreach (FamilyMember m in State.Members.Where(m => State.Party.Contains(m.Id) && !m.Away && !m.InDanger))
+        {
+            // Side by side with the player, so nobody blocks the camera's view.
+            CancelTask(m);
+            m.Position = position + (side * ((i % 2 == 0 ? 1f : -1f) * (0.9f + (0.8f * (i / 2))))) - (back * 0.2f);
+            m.Yaw = yaw;
+            i++;
+        }
+
+        foreach (Pet pet in State.Pets.Where(p => p.State == PetState.Follow))
+        {
+            pet.Position = position - (side * 1.1f) - (back * 0.4f);
+        }
+
+        Bus.Publish(new TeleportEvent(position, yaw));
+    }
+
     // ------------------------------------------------------------------- pets
 
     private void UpdatePets(float minutes, float realDt, float speed)

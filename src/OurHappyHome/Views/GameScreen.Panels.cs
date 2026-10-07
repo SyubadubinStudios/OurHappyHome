@@ -93,6 +93,9 @@ public sealed partial class GameScreen
             case "pause":
                 ShowPause();
                 break;
+            case "wardrobe":
+                ShowWardrobe();
+                break;
         }
     }
 
@@ -454,6 +457,75 @@ public sealed partial class GameScreen
         WrapPanel grid = new();
         foreach (FamilyMemory memory in state.Memories.AsEnumerable().Reverse())
         {
+            grid.Children.Add(Polaroid(memory));
+        }
+
+        Control body = grid.Children.Count > 0
+            ? Ui.Stack(8, Orientation.Vertical,
+                Ui.Text(Loc.T("Klik 🖼 untuk ganti bingkai dan ⭐ untuk menempel stiker.", "Click 🖼 to change the frame and ⭐ to add stickers."), 12.5, Ui.Muted), grid)
+            : Ui.Text(Loc.T("Belum ada kenangan. Masak bersama, bermain, berpetualang, atau tekan P untuk berfoto!", "No memories yet. Cook together, play, go on trips, or press P to take a photo!"), 15, Ui.Muted, wrap: true);
+        ShowModal(Ui.Modal("📸", Loc.T($"Album Keluarga · {state.Memories.Count} kenangan", $"Family Album · {state.Memories.Count} memories"), body, ClosePanel, 960, 720));
+    }
+
+    private static readonly string[] Frames = ["classic", "wood", "pastel", "gold", "film"];
+
+    private static readonly string[] StickerSet = ["⭐", "💖", "🌈", "🎉", "🌸", "🐾", "☀", "🍰", "🏆", "🎈"];
+
+    private static (string Background, string Border, string Ink) FrameStyle(string frame) => frame switch
+    {
+        "wood" => ("#B9834F", "#8A5A2E", "#FFF7EA"),
+        "pastel" => ("#FCE1EC", "#F7B7CF", "#5A4636"),
+        "gold" => ("#FFF6D6", "#E0B341", "#5A4636"),
+        "film" => ("#26262B", "#111114", "#F2F2F2"),
+        _ => ("#FFFFFF", "#FFFFFF", "#5A4636"),
+    };
+
+    /// <summary>One decorated album photo; its frame and stickers can be changed in place.</summary>
+    private Border Polaroid(FamilyMemory memory)
+    {
+        Border polaroid = new()
+        {
+            Padding = new Thickness(8, 8, 8, 10),
+            Margin = new Thickness(0, 0, 14, 14),
+            Width = 220,
+            BorderThickness = new Thickness(3),
+            BoxShadow = BoxShadows.Parse("0 4 10 0 #33000000"),
+            RenderTransform = new RotateTransform((memory.Id % 5) - 2),
+        };
+
+        void Refresh()
+        {
+            (string background, string border, string ink) = FrameStyle(memory.Frame);
+            polaroid.Background = Ui.B(background);
+            polaroid.BorderBrush = Ui.B(border);
+            polaroid.Child = PolaroidContent(memory, Ui.B(ink), () =>
+            {
+                memory.Frame = Frames[(Array.IndexOf(Frames, memory.Frame) + 1) % Frames.Length];
+                Audio.Play("click", gain: 0.5f);
+                Refresh();
+            }, () =>
+            {
+                if (memory.Stickers.Count >= 3)
+                {
+                    memory.Stickers.Clear();
+                }
+                else
+                {
+                    memory.Stickers.Add(StickerSet[(memory.Id + memory.Stickers.Count * 3) % StickerSet.Length]);
+                }
+
+                Audio.Play("objective", gain: 0.5f);
+                Refresh();
+            });
+        }
+
+        Refresh();
+        return polaroid;
+    }
+
+    private static Control PolaroidContent(FamilyMemory memory, IBrush ink, Action nextFrame, Action addSticker)
+    {
+        {
             StackPanel card = new() { Spacing = 4 };
             Bitmap? photo = null;
             if (memory.PhotoFile is { } file && File.Exists(file))
@@ -469,9 +541,9 @@ public sealed partial class GameScreen
                 }
             }
 
-            card.Children.Add(new Border
+            Grid picture = new() { Height = 150 };
+            picture.Children.Add(new Border
             {
-                Height = 150,
                 CornerRadius = new CornerRadius(6),
                 ClipToBounds = true,
                 Background = Ui.B("#EFE3D3"),
@@ -479,25 +551,74 @@ public sealed partial class GameScreen
                     ? new Image { Source = photo, Stretch = Stretch.UniformToFill }
                     : Ui.Emoji(FamilyMemory.OutcomeIcon(memory.Outcome), 42),
             });
-            card.Children.Add(Ui.Text(memory.Title, 13, Ui.Ink, FontWeight.Bold, wrap: true));
-            card.Children.Add(Ui.Text($"{GameDate.FromDayIndex(memory.DayIndex)} · {memory.Location}", 11, Ui.Muted, wrap: true));
-            card.Children.Add(Ui.Text(memory.Description, 11.5, Ui.Ink, wrap: true));
-            card.Children.Add(Ui.Stack(2, Orientation.Horizontal, [.. memory.Participants.Select(p => Ui.Portrait(p, 22))]));
-            Border polaroid = new()
+
+            (HorizontalAlignment H, VerticalAlignment V, double Angle)[] spots =
+            [
+                (HorizontalAlignment.Left, VerticalAlignment.Top, -14),
+                (HorizontalAlignment.Right, VerticalAlignment.Bottom, 12),
+                (HorizontalAlignment.Right, VerticalAlignment.Top, 8),
+            ];
+            for (int i = 0; i < memory.Stickers.Count && i < spots.Length; i++)
             {
-                Background = Brushes.White,
-                Padding = new Thickness(8, 8, 8, 10),
-                Margin = new Thickness(0, 0, 14, 14),
-                Width = 220,
-                BoxShadow = BoxShadows.Parse("0 4 10 0 #33000000"),
-                RenderTransform = new RotateTransform((memory.Id % 5) - 2),
-                Child = card,
-            };
-            grid.Children.Add(polaroid);
+                TextBlock sticker = Ui.Emoji(memory.Stickers[i], 30);
+                sticker.HorizontalAlignment = spots[i].H;
+                sticker.VerticalAlignment = spots[i].V;
+                sticker.Margin = new Thickness(-6);
+                sticker.RenderTransform = new RotateTransform(spots[i].Angle);
+                picture.Children.Add(sticker);
+            }
+
+            card.Children.Add(picture);
+            card.Children.Add(Ui.Text(memory.Title, 13, ink, FontWeight.Bold, wrap: true));
+            card.Children.Add(Ui.Text($"{GameDate.FromDayIndex(memory.DayIndex)} · {memory.Location}", 11, ink, wrap: true));
+            card.Children.Add(Ui.Text(memory.Description, 11.5, ink, wrap: true));
+            card.Children.Add(Ui.Row(
+                (Ui.Stack(2, Orientation.Horizontal, [.. memory.Participants.Select(p => Ui.Portrait(p, 22))]), GridLength.Star),
+                (Ui.Ghost("🖼", nextFrame, size: 11), GridLength.Auto),
+                (Ui.Ghost("⭐", addSticker, size: 11), GridLength.Auto)));
+            return card;
+        }
+    }
+
+    // ----------------------------------------------------------- wardrobe
+
+    private void ShowWardrobe()
+    {
+        GameState state = Session.State;
+        List<ItemDef> owned = [.. ItemCatalog.All.Where(i => i.Category == ItemCategory.Costume && state.Inventory.Has(i.Id))];
+        StackPanel body = new() { Spacing = 8 };
+        body.Children.Add(Ui.Text(Loc.T("Kostum dibagi bersama dari kotak kostum keluarga. Beli topi baru di Mal!", "Costumes come from the family dress-up box. Buy new hats at the Mall!"), 13, Ui.Muted, wrap: true));
+        foreach (FamilyMember m in state.Members)
+        {
+            StackPanel choices = Ui.Stack(4, Orientation.Horizontal,
+                Ui.Button(Loc.T("Tanpa", "None"), () =>
+                {
+                    Session.SetAccessory(m.Id, null);
+                    ShowWardrobe();
+                }, m.Accessory is null ? "#5A4636" : "#F3E2CF", m.Accessory is null ? "#FFFFFF" : "#5A4636", 12));
+            foreach (ItemDef item in owned)
+            {
+                bool wearing = m.Accessory == item.Id;
+                choices.Children.Add(Ui.Button(item.Icon, () =>
+                {
+                    Session.SetAccessory(m.Id, item.Id);
+                    Audio.Play("success", gain: 0.4f);
+                    ShowWardrobe();
+                }, wearing ? "#4CAF50" : "#FFF1DE", wearing ? "#FFFFFF" : "#5A4636", 15, tip: item.Name));
+            }
+
+            body.Children.Add(Ui.Card(Ui.Row(
+                (Ui.Portrait(m.Id, 40), GridLength.Auto),
+                (Ui.Text(m.Name, 14.5, Ui.Ink, FontWeight.Bold), new GridLength(110)),
+                (choices, GridLength.Star)), 8));
         }
 
-        Control body = grid.Children.Count > 0 ? grid : Ui.Text(Loc.T("Belum ada kenangan. Masak bersama, bermain, berpetualang, atau tekan P untuk berfoto!", "No memories yet. Cook together, play, go on trips, or press P to take a photo!"), 15, Ui.Muted, wrap: true);
-        ShowModal(Ui.Modal("📸", Loc.T($"Album Keluarga · {state.Memories.Count} kenangan", $"Family Album · {state.Memories.Count} memories"), body, ClosePanel, 960, 720));
+        if (owned.Count == 0)
+        {
+            body.Children.Add(Ui.Text(Loc.T("Kotak kostum masih kosong.", "The dress-up box is empty."), 14, Ui.Muted));
+        }
+
+        ShowModal(Ui.Modal("👒", Loc.T("Lemari Kostum", "Dress-up Box"), body, ClosePanel, 720, 560));
     }
 
     // ---------------------------------------------------------------- map
@@ -580,6 +701,7 @@ public sealed partial class GameScreen
                 ItemCategory.Gift => Loc.T("Hadiah", "Gifts"),
                 ItemCategory.Hobby => Loc.T("Hobi", "Hobbies"),
                 ItemCategory.Pet => Loc.T("Hewan peliharaan", "Pets"),
+                ItemCategory.Costume => Loc.T("Kostum & topi", "Costumes & hats"),
                 _ => Loc.T("Kebun", "Garden"),
             }, 15));
             WrapPanel items = new();
@@ -729,6 +851,7 @@ public sealed partial class GameScreen
             body.Children.Add(Ui.Text(Loc.T("Belum ada makanan. Masak di dapur!", "No food yet. Cook in the kitchen!"), 13, Ui.Muted));
         }
 
+        body.Children.Add(Ui.Ghost(Loc.T("Lemari kostum", "Dress-up box"), ShowWardrobe, "👒"));
         body.Children.Add(Ui.Ghost(Loc.T(Session.FlashlightOn ? "Matikan senter (F)" : "Nyalakan senter (F)", Session.FlashlightOn ? "Switch off flashlight (F)" : "Switch on flashlight (F)"), () =>
         {
             Session.FlashlightOn = !Session.FlashlightOn;

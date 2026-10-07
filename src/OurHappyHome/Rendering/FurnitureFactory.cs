@@ -88,6 +88,51 @@ public static class FurnitureFactory
                 m.Cylinder(node, new Vector3(0f, 0.75f, 0f), 0.025f, 1.45f, metal, true);
                 m.Cone(node, new Vector3(0f, 1.32f, 0f), 0.22f, 0.3f, t.LampGlow);
                 break;
+            case "aquarium":
+                {
+                    m.Block(node, 0f, 0f, 0f, new(f.X, 0.55f, f.Y), darkWood);
+                    Node glass = m.Block(node, 0f, 0f, 0.55f, new(f.X, 0.55f, f.Y), t.Solid("#8FD3F0", 0.05f, emissive: 0.35f));
+                    glass.CastShadow = false;
+                    m.Block(node, 0f, 0f, 0.55f, new(f.X - 0.04f, 0.05f, f.Y - 0.04f), t.Solid("#E9D8A6", 0.9f));
+                    foreach ((float x, float y, string c) in new[] { (-0.25f, 0.8f, "#FF8C42"), (0.15f, 0.92f, "#FFD166"), (0.3f, 0.74f, "#EF476F") })
+                    {
+                        m.Sphere(node, new Vector3(x, y, f.Y / 2f + 0.01f), new(0.12f, 0.07f, 0.03f), t.Solid(c, 0.4f, emissive: 0.3f), true);
+                    }
+
+                    m.Block(node, 0f, 0f, 1.1f, new(f.X + 0.02f, 0.05f, f.Y + 0.02f), darkWood);
+                    break;
+                }
+
+            case "beanbag":
+                m.Sphere(node, new Vector3(0f, 0.25f, 0f), new(f.X, 0.5f, f.Y), main, true);
+                m.Sphere(node, new Vector3(0f, 0.42f, -0.25f), new(f.X * 0.85f, 0.4f, 0.45f), main, true);
+                break;
+            case "painting":
+                m.Block(node, 0f, 0f, 1.25f, new(f.X, 0.7f, f.Y * 0.5f), darkWood);
+                m.Block(node, 0f, f.Y * 0.26f, 1.3f, new(f.X - 0.1f, 0.6f, 0.01f), t.Solid("#BEE3F8", 0.9f));
+                m.Block(node, 0f, f.Y * 0.27f, 1.3f, new(f.X - 0.1f, 0.22f, 0.01f), t.Solid("#7CB518", 0.9f));
+                m.Sphere(node, new Vector3(0.22f, 1.72f, f.Y * 0.28f), new(0.14f, 0.14f, 0.01f), t.Solid("#FFD166", 0.6f, emissive: 0.4f), true);
+                break;
+            case "arcade":
+                m.Block(node, 0f, 0f, 0f, new(f.X, h, f.Y), main);
+                m.Block(node, 0f, f.Y / 2f, 1.05f, new(f.X - 0.15f, 0.5f, 0.02f), t.Solid("#1B1B2F", 0.2f, emissive: 0.2f));
+                m.Block(node, 0f, f.Y / 2f + 0.01f, 1.1f, new(f.X - 0.25f, 0.38f, 0.01f), t.Solid("#4CC9F0", 0.3f, emissive: 1.4f));
+                m.Block(node, 0f, f.Y / 2f + 0.12f, 0.85f, new(f.X - 0.1f, 0.06f, 0.25f), t.Solid("#2B2D42"));
+                m.Sphere(node, new Vector3(-0.15f, 0.92f, f.Y / 2f + 0.15f), new(0.07f), t.Solid("#EF476F", 0.4f), true);
+                m.Sphere(node, new Vector3(0.12f, 0.9f, f.Y / 2f + 0.15f), new(0.06f), t.Solid("#FFD166", 0.4f), true);
+                m.Block(node, 0f, f.Y / 2f + 0.01f, 1.62f, new(f.X - 0.1f, 0.14f, 0.01f), t.Solid("#FF9F1C", 0.5f, emissive: 1f));
+                break;
+            case "hammock":
+                foreach (float z in new[] { -f.Y / 2f + 0.06f, f.Y / 2f - 0.06f })
+                {
+                    m.Block(node, -0.35f, z, 0f, new(0.08f, h, 0.08f), darkWood);
+                    m.Block(node, 0.35f, z, 0f, new(0.08f, h, 0.08f), darkWood);
+                    m.Block(node, 0f, z, h - 0.08f, new(0.8f, 0.08f, 0.08f), darkWood);
+                }
+
+                m.Block(node, 0f, 0f, 0.5f, new(0.75f, 0.05f, f.Y - 0.5f), main);
+                m.Block(node, 0f, 0f, 0.55f, new(0.72f, 0.03f, f.Y - 0.55f), t.Solid("#E76F51", 0.9f));
+                break;
             case "plant":
                 m.Cylinder(node, new Vector3(0f, 0.18f, 0f), 0.18f, 0.36f, t.Solid("#C96F4A", 0.8f));
                 m.Sphere(node, new Vector3(0f, 0.62f, 0f), new(0.55f, 0.6f, 0.55f), t.Solid("#4F9D4F", 0.8f), true);
@@ -275,6 +320,12 @@ public static class FurnitureFactory
     public static void Tree(Node node, Meshes m, Textures t, int variant, ModelLibrary models)
     {
         if (variant % 3 == 0 && models.Height("flower-bush", node, 4.2f) is not null)
+        {
+            return;
+        }
+
+        // Rodin shade tree, varied in size and rotation.
+        if (variant % 3 == 1 && models.Height("tree", node, 4.4f + (variant % 5 * 0.25f), variant * 1.3f) is not null)
         {
             return;
         }

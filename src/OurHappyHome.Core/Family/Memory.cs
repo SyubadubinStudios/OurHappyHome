@@ -51,6 +51,11 @@ public sealed class FamilyMemory
     public float RelationshipChange { get; set; }
     public string? PhotoFile { get; set; }
 
+    /// <summary>Album decoration: frame style and up to three stickers (emoji).</summary>
+    public string Frame { get; set; } = "classic";
+
+    public List<string> Stickers { get; set; } = [];
+
     /// <summary>Optional key used by the AI to recall it (e.g. "recipe:Pancakes").</summary>
     public string Tag { get; set; } = "";
 

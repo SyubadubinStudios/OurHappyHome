@@ -81,6 +81,9 @@ public sealed record MiniGameRequest(string Kind, string Argument) : GameEvent;
 /// <summary>The presentation should open a panel (recipe picker, shop, gift picker, map...).</summary>
 public sealed record OpenPanelEvent(string Panel, string Argument = "") : GameEvent;
 
+/// <summary>The controlled member jumped somewhere (entering or leaving a building): snap the camera.</summary>
+public sealed record TeleportEvent(Vector2 Position, float Yaw) : GameEvent;
+
 /// <summary>
 /// Queue based event bus: systems publish during the simulation tick, the
 /// game drains the queue once per frame on the UI thread. Systems inside the

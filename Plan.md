@@ -21,17 +21,27 @@ keluarga yang hidup sendiri, menjelajah kota, dan saling melindungi saat keadaan
 - Efek visual, musik & efek suara prosedural, UI ramah anak, aksesibilitas, dua bahasa
 - Menu Tentang dengan kredit bergulir, dokumentasi & screenshot, installer per platform
 
-## Fase 2 — Polesan & konten (v1.1)
+## Fase 2 — Polesan & konten ✅ (v1.1)
 
-- Rekam semua kalimat suara yang tersisa (Dinda, Kak Nara, Raka, Ibu) lewat ElevenLabs
-- Model Rodin untuk tetangga (Nenek Sari, Pak Budi, Dimas, Bu Guru Rina), monyet, ular, petugas, pohon
-- Rig dan animasi untuk anjing & kucing (jalan, duduk, tidur, menggonggong/mengeong) lewat Blender MCP
-- Ekspresi wajah sederhana (shape key: senyum, sedih, takut) dan sinkronisasi bibir untuk suara
-- Interior sekolah, supermarket dan klinik yang bisa dimasuki (sekarang berupa panel UI)
-- Lebih banyak resep, perabot dan warna dinding; kostum dan pakaian per musim
-- Kamera foto dengan bingkai/stiker untuk album
+- Semua kalimat suara direkam lewat ElevenLabs (Ayah, Ibu, Kak Nara, Raka, Dinda, tetangga, dr. Sinta)
+- Model Rodin + rig Blender MCP untuk Nenek Sari, Pak Budi, Dimas, Bu Guru Rina, dr. Sinta, polisi,
+  pemadam kebakaran, tim SAR dan orang asing; model Rodin untuk monyet, ular dan pohon
+- Rig hewan berkaki empat (`tools/blender/rig_animal.py`): anjing & kucing dengan Idle, Walk, Run, Sit,
+  Sleep, Bark
+- Animasi Talk saat berbicara (keluarga & tetangga) sebagai pengganti sederhana sinkronisasi bibir
+- Interior sekolah, supermarket dan klinik yang bisa dimasuki bersama keluarga
+- 6 resep baru (Mi Goreng, Gado-Gado, Bubur Ayam, Pisang Goreng, Martabak Manis, Es Teh Manis),
+  5 perabot baru (akuarium, bean bag, lukisan, mesin arkade, ayunan jaring), 12 warna cat baru
+- Kostum & topi dari lemari kostum (topi pesta, topi jerami, kupluk, mahkota, bando telinga kucing)
+- Album dengan bingkai dan stiker
+
+Dipindah ke v1.2: ekspresi wajah dengan shape key dan sinkronisasi bibir sungguhan, pakaian yang
+berganti otomatis per musim.
 
 ## Fase 3 — Dunia yang lebih hidup (v1.2)
+
+- Ekspresi wajah (shape key: senyum, sedih, takut) dan sinkronisasi bibir untuk suara
+- Pakaian yang berganti otomatis per musim dan cuaca
 
 - Tetangga dengan jadwal sendiri, persahabatan anak-anak dengan teman sekolah
 - Rumah dua lantai dengan tangga, loteng, balkon

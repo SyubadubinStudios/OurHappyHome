@@ -360,7 +360,7 @@ public sealed partial class GameSession
                 Say(member, Loc.T("Aku pulang! Tadi belajar seru!", "I'm home! School was fun!"));
                 break;
             case ActivityId.Work:
-                Say(member, Loc.T("Ayah pulang!", "Dad's home!"), "dad_greet");
+                Say(member, Loc.T("Ayah pulang!", "Dad's home!"));
                 break;
             case ActivityId.Errand:
                 RestockGroceries(member);
@@ -371,7 +371,7 @@ public sealed partial class GameSession
     private void RestockGroceries(FamilyMember shopper)
     {
         long spent = 0;
-        foreach ((string item, int want) in new[] { ("rice", 3), ("egg", 6), ("milk", 3), ("flour", 2), ("sugar", 2), ("vegetables", 3), ("snack", 4), ("chicken", 2), ("fruit", 2) })
+        foreach ((string item, int want) in new[] { ("rice", 3), ("egg", 6), ("milk", 3), ("flour", 2), ("sugar", 2), ("vegetables", 3), ("snack", 4), ("chicken", 2), ("fruit", 2), ("noodles", 2), ("banana", 1), ("tea", 1), ("peanuts", 1) })
         {
             int need = want - State.Inventory.Count(item);
             if (need <= 0)

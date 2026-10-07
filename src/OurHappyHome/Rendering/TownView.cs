@@ -359,6 +359,119 @@ public sealed class TownView
                     _m.Box(sign, new Vector3(0f, f.Height, 0f), new Vector3(w, w / 4f, 0.08f), board);
                     break;
                 }
+
+            default:
+                BuildInterior(f, color);
+                break;
+        }
+    }
+
+    /// <summary>Pieces of the enterable school, supermarket and clinic rooms.</summary>
+    private void BuildInterior(TownFeature f, Material color)
+    {
+        Rect a = f.Area;
+        Vector2 c = a.Center;
+        switch (f.Kind)
+        {
+            case FeatureKind.InteriorFloor:
+                {
+                    Material floor = f.Label switch { "tile" => _t.Tile, "checker" => _t.Checker, _ => _t.Wood };
+                    _m.Ground(_root, new Vector3(c.X, 0.03f, c.Y), a.Size, _scene.CreateMaterial(floor.Options with { UvScale = a.Size / 2f }), "interior-floor");
+                    break;
+                }
+
+            case FeatureKind.InteriorWall:
+                _m.Block(_root, c.X, c.Y, 0f, new Vector3(a.Width, f.Height, a.Depth), color);
+                _m.Block(_root, c.X, c.Y, f.Height, new Vector3(a.Width + 0.04f, 0.06f, a.Depth + 0.04f), _t.Solid("#FFFFFF", 0.5f));
+                break;
+            case FeatureKind.Door:
+                {
+                    // An open door frame, so it never hides whoever stands just inside.
+                    _m.Block(_root, a.X0 + 0.06f, c.Y, 0f, new Vector3(0.12f, f.Height, a.Depth + 0.1f), color);
+                    _m.Block(_root, a.X1 - 0.06f, c.Y, 0f, new Vector3(0.12f, f.Height, a.Depth + 0.1f), color);
+                    _m.Block(_root, c.X, c.Y, f.Height - 0.12f, new Vector3(a.Width, 0.12f, a.Depth + 0.1f), color);
+                    Node sign = _m.Box(_root, new Vector3(c.X, f.Height + 0.25f, c.Y), new Vector3(1.2f, 0.3f, 0.04f), _t.Sign(f.Label, AColor.Parse("#2E9E5B"), AColor.Parse("#FFFFFF")));
+                    sign.CastShadow = false;
+                    sign.EulerAngles = new Vector3(0f, MathF.PI, 0f);
+                    _m.Ground(_root, new Vector3(c.X, 0.045f, c.Y - 0.8f), new Vector2(1.6f, 1f), _t.Solid("#B23A3A", 0.95f), "doormat");
+                    break;
+                }
+
+            case FeatureKind.Shelf:
+                {
+                    Material wood = _t.Solid(f.Label == "fridge" ? "#E8F1F2" : "#B5835A", f.Label == "fridge" ? 0.3f : 0.8f);
+                    _m.Block(_root, c.X, c.Y, 0f, new Vector3(a.Width, f.Height, a.Depth), wood);
+                    bool alongX = a.Width >= a.Depth;
+                    float length = alongX ? a.Width : a.Depth;
+                    string[] goods = f.Label == "books" ? ["#C0392B", "#2E86C1", "#F1C40F", "#27AE60"] : ["#E4572E", "#F3A712", "#FFFFFF", "#669BBC", "#A8C686", f.Color];
+                    Random r = new((int)(c.X * 31 + c.Y));
+                    for (int level = 0; level < 3; level++)
+                    {
+                        float y = 0.25f + (level * (f.Height - 0.2f) / 3f);
+                        for (float s = 0.25f; s < length - 0.2f; s += 0.32f)
+                        {
+                            float along = -length / 2f + s;
+                            Vector3 size = new(0.22f, 0.18f + ((float)r.NextDouble() * 0.14f), 0.22f);
+                            foreach (float side in new[] { -1f, 1f })
+                            {
+                                float off = side * ((alongX ? a.Depth : a.Width) / 2f + 0.06f);
+                                Vector3 p = alongX ? new Vector3(c.X + along, y, c.Y + off) : new Vector3(c.X + off, y, c.Y + along);
+                                _m.Block(_root, p.X, p.Z, p.Y, size, _t.Solid(goods[r.Next(goods.Length)], 0.6f)).CastShadow = false;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+            case FeatureKind.Counter:
+                _m.Block(_root, c.X, c.Y, 0f, new Vector3(a.Width, f.Height, a.Depth), color);
+                _m.Block(_root, c.X, c.Y, f.Height, new Vector3(a.Width + 0.1f, 0.06f, a.Depth + 0.1f), _t.Solid("#F5F5F5", 0.3f));
+                _m.Block(_root, c.X - (a.Width * 0.25f), c.Y, f.Height + 0.06f, new Vector3(0.45f, 0.3f, 0.35f), _t.Solid("#3C3F46", 0.4f));
+                if (f.Label.Length > 0)
+                {
+                    Node label = _m.Box(_root, new Vector3(c.X, f.Height + 0.9f, c.Y), new Vector3(1.4f, 0.35f, 0.04f), _t.Sign(f.Label, AColor.Parse("#2E6FBF"), AColor.Parse("#FFFFFF")));
+                    label.CastShadow = false;
+                }
+
+                break;
+            case FeatureKind.Desk:
+                {
+                    bool big = f.Label == "teacher";
+                    _m.Block(_root, c.X, c.Y, f.Height - 0.05f, new Vector3(a.Width, 0.05f, a.Depth), color);
+                    foreach ((float x, float z) in new[] { (-1f, -1f), (1f, -1f), (-1f, 1f), (1f, 1f) })
+                    {
+                        _m.Block(_root, c.X + (x * ((a.Width / 2f) - 0.05f)), c.Y + (z * ((a.Depth / 2f) - 0.05f)), 0f, new Vector3(0.05f, f.Height - 0.05f, 0.05f), _t.Solid("#5A4632"));
+                    }
+
+                    // Chair behind the desk (the pupil side faces the board, the teacher faces the class).
+                    float chairZ = big ? -(a.Depth / 2f) - 0.35f : (a.Depth / 2f) + 0.3f;
+                    _m.Block(_root, c.X, c.Y + chairZ, 0.4f, new Vector3(0.4f, 0.05f, 0.4f), _t.Solid("#3D8FE5", 0.6f));
+                    _m.Block(_root, c.X, c.Y + chairZ + (big ? -0.2f : 0.2f), 0.4f, new Vector3(0.4f, 0.45f, 0.05f), _t.Solid("#3D8FE5", 0.6f));
+                    _m.Block(_root, c.X, c.Y + chairZ, 0f, new Vector3(0.05f, 0.4f, 0.05f), _t.Solid("#5A4632"));
+                    _m.Block(_root, c.X - 0.1f, c.Y, f.Height, new Vector3(0.3f, 0.03f, 0.22f), _t.Solid(big ? "#F1C40F" : "#FFFFFF", 0.8f));
+                    break;
+                }
+
+            case FeatureKind.Board:
+                {
+                    float w = a.Width;
+                    _m.Block(_root, c.X - (w / 2f) + 0.1f, c.Y, 0f, new Vector3(0.1f, f.Height, 0.1f), _t.Solid("#5A4632"));
+                    _m.Block(_root, c.X + (w / 2f) - 0.1f, c.Y, 0f, new Vector3(0.1f, f.Height, 0.1f), _t.Solid("#5A4632"));
+                    _m.Box(_root, new Vector3(c.X, f.Height - 0.6f, c.Y), new Vector3(w, 1.2f, 0.08f), _t.Sign(f.Label, AColor.Parse(f.Color), AColor.Parse("#FFFFFF")));
+                    break;
+                }
+
+            case FeatureKind.ClinicBed:
+                _m.Block(_root, c.X, c.Y, 0f, new Vector3(a.Width, f.Height - 0.15f, a.Depth), _t.Solid("#B8C4CC", 0.4f, 0.5f));
+                _m.Block(_root, c.X, c.Y, f.Height - 0.15f, new Vector3(a.Width - 0.05f, 0.15f, a.Depth - 0.05f), color);
+                _m.Block(_root, c.X, c.Y - (a.Depth / 2f) + 0.25f, f.Height, new Vector3(a.Width * 0.7f, 0.1f, 0.35f), _t.Solid("#DDEBF7", 0.8f));
+                _m.Block(_root, c.X, c.Y + 0.25f, f.Height - 0.02f, new Vector3(a.Width - 0.02f, 0.04f, a.Depth * 0.55f), _t.Solid("#9BD1E5", 0.9f));
+                break;
+            case FeatureKind.Plant:
+                _m.Cylinder(_root, new Vector3(c.X, 0.2f, c.Y), a.Width * 0.35f, 0.4f, _t.Solid("#C2703D", 0.8f), true);
+                _m.Sphere(_root, new Vector3(c.X, 0.4f + ((f.Height - 0.4f) * 0.5f), c.Y), new Vector3(a.Width, f.Height - 0.4f, a.Depth), color, true);
+                break;
         }
     }
 

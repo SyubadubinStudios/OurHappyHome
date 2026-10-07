@@ -48,7 +48,7 @@ public sealed class AboutScreen : UserControl, IKeyHandler
             FontSize = Ui.Fs(14),
             TextWrapping = TextWrapping.Wrap,
         });
-        about.Children.Add(new TextBlock { Text = Loc.T("Versi 1.0 · .NET 10 · Avalonia · ThreeNet", "Version 1.0 · .NET 10 · Avalonia · ThreeNet"), Foreground = Ui.B("#CDBBA8"), FontSize = Ui.Fs(12) });
+        about.Children.Add(new TextBlock { Text = Loc.T("Versi 1.1 · .NET 10 · Avalonia · ThreeNet", "Version 1.1 · .NET 10 · Avalonia · ThreeNet"), Foreground = Ui.B("#CDBBA8"), FontSize = Ui.Fs(12) });
         about.Children.Add(Ui.Stack(10, Orientation.Horizontal,
             Ui.Button(Loc.T("Kembali", "Back"), Back, icon: "◀"),
             Ui.Ghost(Loc.T("Jeda / lanjut kredit", "Pause / resume credits"), () => _paused = !_paused, "⏯")));
@@ -104,7 +104,8 @@ public sealed class AboutScreen : UserControl, IKeyHandler
         Line(Loc.T("dan Brownie si anjing kecil", "and Brownie the puppy"), 15, "#FFE8C7", FontWeight.Normal);
 
         Heading(Loc.T("TETANGGA & WARGA KOTA", "NEIGHBOURS & TOWNSFOLK"));
-        Line(Loc.T("Nenek Sari · Pak Budi · Dimas · Bu Guru Rina", "Grandma Sari · Mr. Budi · Dimas · Ms. Rina"));
+        Line(Loc.T("Nenek Sari · Pak Budi · Dimas · Bu Guru Rina · dr. Sinta", "Grandma Sari · Mr. Budi · Dimas · Ms. Rina · Dr. Sinta"));
+        Line(Loc.T("serta polisi, pemadam kebakaran, tim SAR, Coco & Mochi", "plus the police, firefighters, rescuers, Coco & Mochi"), 15, "#FFE8C7", FontWeight.Normal);
 
         Heading(Loc.T("PEMROGRAMAN & SIMULASI", "PROGRAMMING & SIMULATION"));
         Line(Loc.T("Simulasi keluarga hidup, AI rutinitas harian, cuaca, ekonomi, kenangan", "Living family simulation, daily-routine AI, weather, economy, memories"), 15, "#F6EDE3", FontWeight.Normal);
@@ -114,6 +115,7 @@ public sealed class AboutScreen : UserControl, IKeyHandler
         Line(Loc.T("Concept art & ilustrasi: Nano Banana 2 / Qwen Image via Rodin MCP", "Concept art & illustrations: Nano Banana 2 / Qwen Image via Rodin MCP"), 15, "#F6EDE3", FontWeight.Normal);
         Line(Loc.T("Model 3D keluarga, hewan & perabot: Rodin (Hyper3D)", "Family, pet & furniture 3D models: Rodin (Hyper3D)"), 15, "#F6EDE3", FontWeight.Normal);
         Line(Loc.T("Rigging & 12 animasi karakter: Blender 5.2 (Blender MCP)", "Rigging & 12 character animations: Blender 5.2 (Blender MCP)"), 15, "#F6EDE3", FontWeight.Normal);
+        Line(Loc.T("Rig hewan berkaki empat (jalan, duduk, tidur, menggonggong): Blender MCP", "Four-legged pet rigs (walk, sit, sleep, bark): Blender MCP"), 15, "#F6EDE3", FontWeight.Normal);
 
         Heading(Loc.T("SUARA & MUSIK", "SOUND & MUSIC"));
         Line(Loc.T("Suara karakter: ElevenLabs v3 via Rodin MCP", "Character voices: ElevenLabs v3 via Rodin MCP"), 15, "#F6EDE3", FontWeight.Normal);

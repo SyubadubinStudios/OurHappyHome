@@ -452,6 +452,12 @@ public sealed partial class GameSession
             case ActivityId.Swim:
                 StartTask(m, ActivityId.Swim, null, -1, target: Rooms.Get(RoomId.Pool).Area.Center + new Vector2(0f, 2.6f));
                 return;
+            case ActivityId.Clean when State.House.Hazards
+                .Where(h => h.Kind is HazardKind.Puddle or HazardKind.Flour or HazardKind.BrokenGlass or HazardKind.Debris)
+                .OrderBy(h => Vector2.Distance(h.Position, m.Position)).FirstOrDefault() is { } mess:
+                // Mop where the mess actually is (a bathroom puddle is far from the kitchen).
+                StartTask(m, ActivityId.Clean, null, -1, target: mess.Position);
+                return;
             case ActivityId.Errand:
                 SendAway(m, ActivityId.Errand, Hour + 1.25f);
                 Say(m, Loc.T("Bahan makanan habis. Belanja dulu ya!", "We're out of food. Off to the shop!"));
@@ -460,7 +466,7 @@ public sealed partial class GameSession
                 StartTask(m, ActivityId.Exercise, null, -1, target: new Vector2(4f, -10f));
                 return;
             case ActivityId.Sleep when m.IsChild && m.Personality.Fears.Contains("dark") && !State.House.PowerOn:
-                Say(m, Loc.T("Gelap sekali... aku takut.", "It's so dark... I'm scared."), m.Id == MemberId.OlderSister ? "os_scared" : null);
+                Say(m, Loc.T("Aku takut... gelap sekali.", "I'm scared... it's so dark."), m.Id == MemberId.OlderSister ? "os_scared" : null);
                 break;
         }
 
@@ -594,10 +600,11 @@ public sealed partial class GameSession
         string line = (m.Id, Random.Range(0, 3)) switch
         {
             (MemberId.Father, 0) => Loc.T("Akhir pekan kita berkemah, yuk!", "Let's go camping this weekend!"),
+            (MemberId.Father, 1) when Hour < 11f => Loc.T("Pagi, jagoan! Hari ini kita perbaiki apa?", "Morning, champ! What shall we fix today?"),
             (MemberId.Father, _) => Loc.T("Ada yang rusak? Ayah bisa perbaiki!", "Anything broken? Dad can fix it!"),
             (MemberId.Mother, 0) => Loc.T("Kalian sudah makan?", "Have you eaten?"),
             (MemberId.Mother, _) => Loc.T("Ibu sayang kalian semua.", "I love you all."),
-            (MemberId.OlderSister, 0) => Loc.T("Mau lihat gambarku?", "Want to see my drawing?"),
+            (MemberId.OlderSister, 0) => Loc.T("Hai! Mau lihat gambarku?", "Hi! Want to see my drawing?"),
             (MemberId.OlderSister, _) => Loc.T("Aku mau jadi fotografer!", "I want to be a photographer!"),
             (MemberId.YoungerSister, 0) => Loc.T("Aku baru baca buku tentang dinosaurus!", "I just read a book about dinosaurs!"),
             (MemberId.YoungerSister, _) => Loc.T("Ayo bikin pancake lagi!", "Let's make pancakes again!"),
@@ -606,6 +613,7 @@ public sealed partial class GameSession
         string? voice = (m.Id, line) switch
         {
             (MemberId.Mother, _) when line.Contains("sayang", StringComparison.Ordinal) || line.Contains("love", StringComparison.Ordinal) => "mom_love",
+            (MemberId.Father, _) when line.Contains("jagoan", StringComparison.Ordinal) || line.Contains("champ", StringComparison.Ordinal) => "dad_greet",
             (MemberId.OlderSister, _) when line.Contains("gambar", StringComparison.Ordinal) || line.Contains("drawing", StringComparison.Ordinal) => "os_greet",
             (MemberId.YoungerSister, _) when line.Contains("pancake", StringComparison.Ordinal) => "ys_pancake",
             _ => null,

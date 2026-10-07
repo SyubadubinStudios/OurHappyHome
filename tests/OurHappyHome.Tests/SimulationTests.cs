@@ -335,4 +335,100 @@ public class SimulationTests
             Assert.False(s.Collision.Blocked(place.Entrance, GameSession.CharacterRadius), $"{place.Id} entrance is blocked");
         }
     }
+
+    [Fact]
+    public void InteriorsAreEnclosedWithFreeSpawnExitAndServices()
+    {
+        GameSession s = NewSession();
+        Assert.Equal(3, s.Map.Interiors.Count);
+        foreach (Interior interior in s.Map.Interiors)
+        {
+            Assert.False(s.Collision.Blocked(interior.Spawn, GameSession.CharacterRadius), $"{interior.Place} spawn is blocked");
+            Assert.False(s.Collision.Blocked(interior.Exit, GameSession.CharacterRadius), $"{interior.Place} exit is blocked");
+            Assert.True(interior.Area.Contains(interior.Exit), $"{interior.Place} exit is outside the room");
+            foreach (Vector2 service in interior.Services)
+            {
+                Assert.False(s.Collision.Blocked(service, GameSession.CharacterRadius), $"{interior.Place} service point {service} is blocked");
+            }
+
+            // Walls all around: just outside each side is solid.
+            Rect a = interior.Area;
+            Assert.True(s.Collision.Blocked(new Vector2(a.Center.X, a.Z0 - 0.1f), 0.05f));
+            Assert.True(s.Collision.Blocked(new Vector2(a.Center.X, a.Z1 + 0.1f), 0.05f));
+            Assert.True(s.Collision.Blocked(new Vector2(a.X0 - 0.1f, a.Center.Y), 0.05f));
+            Assert.True(s.Collision.Blocked(new Vector2(a.X1 + 0.1f, a.Center.Y), 0.05f));
+            Assert.Equal(interior.Place, s.Map.PlaceAt(interior.Spawn));
+        }
+    }
+
+    [Fact]
+    public void RecipesUseKnownIngredientsAndCanBeCooked()
+    {
+        foreach (Recipe recipe in Recipes.All)
+        {
+            Assert.All(recipe.Ingredients, i => Assert.True(OurHappyHome.Core.Economy.ItemCatalog.Exists(i.Item), $"{recipe.Id}: unknown {i.Item}"));
+            Assert.NotEmpty(recipe.Steps);
+        }
+
+        GameSession s = NewSession();
+        s.State.Inventory.Add("noodles", 1);
+        Assert.True(Recipes.Get("mie-goreng").CanMake(s.State.Inventory));
+    }
+
+    [Fact]
+    public void CostumesNeedTheItemAndSurviveSaving()
+    {
+        GameSession s = NewSession();
+        Assert.False(s.SetAccessory(MemberId.YoungerSister, "crown"));
+        s.State.Inventory.Add("crown", 1);
+        Assert.True(s.SetAccessory(MemberId.YoungerSister, "crown"));
+        Assert.False(s.SetAccessory(MemberId.YoungerSister, "egg"));
+        s.State.Memories.Add(new FamilyMemory { Id = 99, Title = "Test", Frame = "gold", Stickers = ["⭐", "💖"] });
+
+        GameState loaded = SaveSystem.Deserialize(SaveSystem.Serialize(s.State));
+        Assert.Equal("crown", loaded.Member(MemberId.YoungerSister).Accessory);
+        FamilyMemory memory = loaded.Memories.Single(m => m.Id == 99);
+        Assert.Equal("gold", memory.Frame);
+        Assert.Equal(["⭐", "💖"], memory.Stickers);
+
+        Assert.True(s.SetAccessory(MemberId.YoungerSister, null));
+        Assert.Null(s.State.Member(MemberId.YoungerSister).Accessory);
+    }
+
+    [Fact]
+    public void FamilyCanEnterAndLeaveTheSupermarket()
+    {
+        GameSession s = NewSession();
+        Run(s, Math.Max(0, (10f - s.Hour) * 60f));
+        s.AbandonScenario();
+        Place market = s.Map.Get(PlaceId.Supermarket);
+        s.Travel(PlaceId.Supermarket, true);
+        Assert.Equal(market.Entrance, s.Controlled.Position);
+
+        InteractionOption enter = s.GetInteractions().First(t => t.Key == "place:Supermarket").Options.First(o => o.Id == "enter");
+        Assert.True(enter.Enabled, enter.Reason);
+        enter.Execute();
+        Interior inside = s.CurrentInterior!;
+        Assert.Equal(PlaceId.Supermarket, inside.Place);
+        Assert.True(s.IsIndoors(s.Controlled.Position));
+        Assert.All(s.State.Party, id => Assert.True(inside.Area.Contains(s.State.Member(id).Position)));
+
+        // Walking north ends at the back wall, still inside.
+        s.PlayerMove = new Vector2(0f, -1f);
+        for (int i = 0; i < 400; i++)
+        {
+            s.Tick(0.05f);
+        }
+
+        s.PlayerMove = Vector2.Zero;
+        Assert.True(inside.Area.Contains(s.Controlled.Position));
+
+        // The cashier sells groceries; the exit mat leads back to the street.
+        s.Controlled.Position = inside.Services[0];
+        Assert.Contains(s.GetInteractions(), t => t.Key.StartsWith("service:Supermarket", StringComparison.Ordinal) && t.Options.Any(o => o.Id == "shop"));
+        s.Controlled.Position = inside.Exit;
+        s.GetInteractions().First(t => t.Key == "interior-exit").Options[0].Execute();
+        Assert.Null(s.CurrentInterior);
+        Assert.Equal(market.Entrance, s.Controlled.Position);
+    }
 }

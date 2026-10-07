@@ -88,6 +88,9 @@ public sealed class FamilyMember
 
     public bool Sick { get; set; }
 
+    /// <summary>Costume item worn on the head (party hat, straw hat...), or null.</summary>
+    public string? Accessory { get; set; }
+
     public List<int> MemoryIds { get; set; } = [];
 
     /// <summary>Who this member is following on a trip or rescue.</summary>

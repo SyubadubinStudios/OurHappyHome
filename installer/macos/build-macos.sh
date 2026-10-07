@@ -4,7 +4,7 @@
 #   artifacts/OurHappyHome-<version>-macos-<arch>.dmg   (when run on macOS: hdiutil)
 # The .app can be built on any OS; icons (.icns), ad-hoc signing and DMG need macOS.
 set -euo pipefail
-VERSION="${1:-1.0.0}"
+VERSION="${1:-1.1.0}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 ART="$ROOT/artifacts"

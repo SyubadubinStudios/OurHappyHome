@@ -305,6 +305,10 @@ public sealed partial class GameScreen : UserControl, IKeyHandler
                 case MiniGameRequest request:
                     OpenMiniGame(request);
                     break;
+                case TeleportEvent teleport when _renderer is not null:
+                    _renderer.Rig.Snap(new System.Numerics.Vector3(teleport.Position.X, 1f, teleport.Position.Y));
+                    _renderer.Rig.Yaw = teleport.Yaw + MathF.PI;
+                    break;
                 case OpenPanelEvent panel:
                     OpenPanel(panel.Panel, panel.Argument);
                     break;

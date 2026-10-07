@@ -25,6 +25,8 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 | ![Bangun](docs/images/09-build-mode.png) | ![Kemah](docs/images/16-trip-camping-night.png) |
 | **Mini-game memasak** | **Album kenangan keluarga** |
 | ![Memasak](docs/images/07-cooking-minigame.png) | ![Album](docs/images/19-family-album.png) |
+| **Baru v1.1: ruang kelas yang bisa dimasuki** | **Baru v1.1: kostum keluarga** |
+| ![Ruang kelas](docs/images/24-interior-classroom.png) | ![Kostum](docs/images/27-family-costumes.png) |
 
 ---
 
@@ -42,7 +44,7 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 - **Kehidupan sehari-hari**: sarapan bersama, sekolah (6 pelajaran sebagai mini-game), gaji Ayah tiap
   Jumat, tagihan rumah, belanja, usaha kue Ibu, jualan limun anak-anak, hewan peliharaan, kalender
   dengan ulang tahun, malam nonton film, pagi pancake, festival dan kemah.
-- **14 resep** dengan 5 tingkat kualitas (Gagal → Sempurna) dan mini-game memasak. Masakan gagal bisa
+- **20 resep** (termasuk mi goreng, gado-gado, bubur ayam dan martabak manis) dengan 5 tingkat kualitas (Gagal → Sempurna) dan mini-game memasak. Masakan gagal bisa
   menghasilkan kejadian lucu, misalnya tepung beterbangan.
 - **Cuaca dinamis**: cerah, berawan, hujan, badai petir, kabut, angin kencang dan badai besar, dengan
   siklus siang dan malam.
@@ -55,7 +57,11 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 - **Mode Santai dan Mode Petualangan** mengatur seberapa sering dan seberapa berat kejadian berbahaya.
 - **Kota yang bisa dijelajahi**: rumah tetangga, taman, sekolah, supermarket, mal, klinik, restoran,
   arkade, taman bermain, pantai, hutan dan bumi perkemahan, plus peta kota dan perjalanan keluarga.
-- **Kenangan dan Album Keluarga** yang otomatis memotret momen penting.
+  **Ruang kelas, supermarket dan klinik bisa dimasuki** bersama keluarga.
+- **Tetangga yang hidup**: Nenek Sari, Pak Budi, Dimas, Bu Guru Rina dan dr. Sinta, juga polisi, pemadam
+  kebakaran, tim SAR, anjing, kucing, monyet dan ular, semuanya model Rodin yang dianimasikan lewat Blender.
+- **Kenangan dan Album Keluarga** yang otomatis memotret momen penting, dengan bingkai dan stiker.
+- **Kostum & topi** untuk seluruh keluarga: topi pesta, topi jerami, kupluk, mahkota dan telinga kucing.
 - **5 bab cerita** (Rumah Kecil Kita sampai Petualangan Besar), lalu mode bebas, ditambah 11 pencapaian.
 - **Efek visual**: bayangan, bloom, SSAO, partikel (hujan, asap, api, uap, hati, konfeti, kembang api),
   kilat, dinding yang turun otomatis saat di dalam rumah, dan pintu yang membuka sendiri.
@@ -109,11 +115,13 @@ make sure **nobody gets left behind** when emergencies strike.
   wall paint and floors.
 - **Daily life**: shared meals, school lessons as mini-games, jobs and bills, shopping, a home bakery,
   a lemonade stand, pets, and a calendar of birthdays and family events.
-- **Cooking**: 14 recipes, five quality tiers (Failed to Perfect) and a cooking mini-game.
+- **Cooking**: 20 recipes, five quality tiers (Failed to Perfect) and a cooking mini-game.
 - **Weather and day/night**, with **random events and emergencies** including the multi-day **Great Storm**.
 - **Rescue system** with Needs Help, Trapped and Down states, rescue timers, and the *Nobody Gets Left
   Behind* restart.
-- **Cozy and Adventure modes**, an explorable **town**, a **family album** of auto-captured photos,
+- **Enterable classroom, supermarket and clinic**, animated **neighbours, visitors and pets**, and a
+  **dress-up box** of hats and costumes.
+- **Cozy and Adventure modes**, an explorable **town**, a **family album** of auto-captured photos with frames and stickers,
   **5 chapters** plus a sandbox, and **11 achievements**.
 - **Effects, procedural music, sound effects and voices**, all of the **accessibility options** from the
   design document, and a bilingual UI.

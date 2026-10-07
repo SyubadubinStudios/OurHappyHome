@@ -24,14 +24,15 @@ dotnet run --project src/OurHappyHome -- --screenshots docs/images      # regene
   is the runtime that ticks every family member each frame. `Scenarios/` = random/emergency events + `EventDirector`
   (Cozy/Adventure scaling). All presentation needs go through `Simulation/EventBus.cs` events.
 - `src/OurHappyHome` — Avalonia 12 app on ThreeNet 0.7.0 (NuGet). `Rendering/` (GameRenderer, HouseView with wall
-  cutaway, TownView, CharacterView, Effects particles, procedural Textures), `Audio/` (procedural Synth, SoundBank,
+  cutaway, TownView, CharacterView + AnimatedFigure (per-instance rigged NPCs/pets), Effects particles, procedural Textures), `Audio/` (procedural Synth, SoundBank,
   MusicComposer, AudioManager on ThreeNet's mixer), `Views/` (MainWindow, MenuScreen, GameScreen partials: HUD,
   Panels, Build; MiniGames, AboutScreen with scrolling credits, ScreenshotDirector), `UI/` (code-built UI kit).
 - `tests/OurHappyHome.Tests` — headless simulation tests (multi-day runs, scenarios, save/load, navigation).
 - `art/` — concept art, raw Rodin GLBs, rigged characters, optimized props, voice MP3s. Game copies live in
   `src/OurHappyHome/Assets/{Models,Voice,Art}`.
 - `tools/blender/` — `rig_character.py` (auto-rig + 12 animations + GLB export; run through Blender MCP with
-  `exec(open(path).read(), ns); ns["process"](src, dst, height)`), `optimize_prop.py`, preview scripts.
+  `exec(open(path).read(), ns); ns["process"](src, dst, height)`), `rig_animal.py` (quadruped rig: Idle, Walk,
+  Run, Sit, Sleep, Bark; pass `ns = {"__file__": path}`), `optimize_prop.py`, preview scripts.
 - `docs/` — bilingual-ish documentation (Indonesian) with screenshots; `README.md` at root.
 
 ## Gotchas
@@ -45,6 +46,13 @@ dotnet run --project src/OurHappyHome -- --screenshots docs/images      # regene
 - Furniture approach points are computed outside the footprint (`FurnitureItem.ApproachPoint`); walks time out
   via `MemberTask.WalkBudget` so nobody gets stuck forever.
 - Character rigs: models face +Z, feet at y = 0; sit/lie offsets use the hip heights in `CharacterView.Proportions`.
+- Stop a figure's `AnimationPlayer`s (`AnimatedFigure.Stop`) before removing its nodes: ThreeNet reuses node ids,
+  and a player still running animates whatever node gets the id next (seen as giant hats at waist height).
+- Rodin quadrupeds come out upright, facing -Y in Blender. Rig them with `tools/blender/rig_animal.py`
+  (no rotation needed). Render rig checks with `preview_poses.py`.
+- Rodin voice (`GenerateVoiceWithElevenLabsV3`) often fails on alternate calls; retry the same line.
+- Interiors (`WorldMap.Interiors`) are diorama rooms at x ≈ 245–290, z ≈ -290…-255, built from interior
+  `FeatureKind`s; enter/exit teleports and publishes `TeleportEvent` for the camera.
 
 ## Required tech stack (from requirements.md)
 

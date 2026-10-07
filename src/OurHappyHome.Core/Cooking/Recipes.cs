@@ -114,6 +114,26 @@ public static class Recipes
         new("birthday-cake", "Kue Ulang Tahun", "Birthday Cake", "🎂", [("flour", 2), ("egg", 2), ("sugar", 2), ("butter", 1), ("chocolate", 1)],
             [S("Kocok adonan", "Beat the batter", "🥣", StepKind.Mash, 0.6f), S("Panggang", "Bake", "🔥", StepKind.Hold, 0.7f), S("Lapisi krim", "Frost the cake", "🍰", StepKind.Timing, 0.7f), S("Pasang lilin", "Add the candles", "🕯", StepKind.Timing, 0.6f)],
             70, 4, 10, 40, 0, Celebration: true),
+
+        // v1.1: more Indonesian home cooking.
+        new("mie-goreng", "Mi Goreng", "Fried Noodles", "🍜", [("noodles", 1), ("egg", 1), ("vegetables", 1)],
+            [S("Rebus mi", "Boil the noodles", "♨", StepKind.Hold, 0.4f), S("Tumis bumbu", "Fry the spices", "🔥", StepKind.Timing, 0.5f), S("Aduk mi", "Toss the noodles", "🥢", StepKind.Mash, 0.5f)],
+            25, 1, 4, 60, 12_000),
+        new("gado-gado", "Gado-Gado", "Gado-Gado Salad", "🥗", [("vegetables", 2), ("egg", 1), ("peanuts", 1)],
+            [S("Rebus sayuran", "Blanch the vegetables", "♨", StepKind.Hold, 0.45f), S("Ulek bumbu kacang", "Grind the peanut sauce", "🥜", StepKind.Mash, 0.6f), S("Siram saus", "Pour the sauce", "🥄", StepKind.Timing, 0.5f)],
+            30, 2, 4, 70, 14_000),
+        new("bubur-ayam", "Bubur Ayam", "Chicken Porridge", "🥣", [("rice", 1), ("chicken", 1)],
+            [S("Masak beras jadi bubur", "Cook the rice into porridge", "🍚", StepKind.Hold, 0.5f), S("Suwir ayam", "Shred the chicken", "🍗", StepKind.Mash, 0.45f), S("Tabur bawang goreng", "Sprinkle fried shallots", "✨", StepKind.Timing, 0.4f)],
+            40, 1, 5, 60, 13_000, HealsSick: true),
+        new("pisang-goreng", "Pisang Goreng", "Fried Bananas", "🍌", [("banana", 1), ("flour", 1)],
+            [S("Celup adonan", "Dip in batter", "🥣", StepKind.Timing, 0.4f), S("Goreng", "Fry", "🔥", StepKind.Hold, 0.5f)],
+            15, 0, 6, 30, 8_000),
+        new("martabak", "Martabak Manis", "Sweet Martabak", "🥮", [("flour", 1), ("egg", 1), ("sugar", 1), ("butter", 1), ("chocolate", 1)],
+            [S("Kocok adonan", "Beat the batter", "🥣", StepKind.Mash, 0.55f), S("Panggang di wajan", "Cook in the pan", "🔥", StepKind.Hold, 0.65f), S("Tabur cokelat", "Add chocolate sprinkles", "🍫", StepKind.Timing, 0.55f), S("Lipat & potong", "Fold and slice", "🔪", StepKind.Timing, 0.6f)],
+            40, 3, 8, 40, 16_000),
+        new("es-teh", "Es Teh Manis", "Sweet Iced Tea", "🧋", [("tea", 1), ("sugar", 1)],
+            [S("Seduh teh", "Brew the tea", "🍵", StepKind.Hold, 0.3f), S("Tambah es", "Add ice", "🧊", StepKind.Timing, 0.3f)],
+            6, 0, 6, 8, 4_000, IsDrink: true),
     ];
 
     private static readonly Dictionary<string, Recipe> ById = All.ToDictionary(r => r.Id);

@@ -13,7 +13,8 @@ OurHappyHome.slnx
 │  ├─ SaveSystem.cs, GameSettings.cs, Loc.cs (dua bahasa)
 ├─ src/OurHappyHome           aplikasi Avalonia + ThreeNet
 │  ├─ Rendering/              GameRenderer, HouseView, TownView, CharacterView, Effects, CameraRig,
-│  │                          Textures (prosedural), Meshes, ModelLibrary, FurnitureFactory
+│  │                          Textures (prosedural), Meshes, ModelLibrary, FurnitureFactory,
+│  │                          AnimatedFigure (model ber-rig per instance untuk NPC/aktor/hewan)
 │  ├─ Audio/                  Synth, SoundBank, MusicComposer, AudioManager
 │  ├─ Views/                  MainWindow, MenuScreen, GameScreen (+Hud, Panels, Build), MiniGames,
 │  │                          SettingsPanel, AboutScreen, ScreenshotDirector
@@ -48,6 +49,15 @@ padam → Dinda takut → Ayah ke panel listrik → Ibu membuat cokelat hangat �
 dari kisi 0,25 m (dinding bersama digabung, pintu terbuka hanya jika ruangan di kedua sisi ada).
 Collision 2D lingkaran-vs-kotak untuk dinding, perabot, bangunan dan pohon kota.
 
+**Interior** (`World/WorldMap.cs`, `Interior`) — sekolah, supermarket dan klinik punya ruangan
+diorama di sudut peta yang kosong (x ≈ 245–290, z ≈ −290…−255). Ruangan dibangun dari `TownFeature`
+khusus (`InteriorFloor`, `InteriorWall`, `Door`, `Shelf`, `Counter`, `Desk`, `Board`, `ClinicBed`,
+`Plant`), sehingga collision, A* dan rendering memakai jalur yang sama dengan kota. `EnterInterior`
+dan `ExitInterior` memindahkan pemain, rombongan keluarga dan hewan yang mengikuti, lalu mengirim
+`TeleportEvent` agar kamera langsung pindah. `PlaceAt` dan `IsIndoors` mengenali interior, jadi lokasi
+di HUD dan hujan ikut menyesuaikan. Titik layanan di dalam (meja guru, kasir, rak, meja dokter) memakai
+pilihan yang sama dengan pintu masuk gedung.
+
 **Skenario** (`Scenarios/`) punya tujuan, aktor (kucing, monyet, ular, babi hutan, orang asing, polisi,
 pemadam, petugas), target interaksi khusus, *hook* (listrik diperbaiki, api padam, diselamatkan…) dan
 bisa mengarahkan AI keluarga. Skenario besar menyimpan *snapshot* JSON untuk **Ulangi Kejadian**.
@@ -63,8 +73,13 @@ bisa mengarahkan AI keluarga. Skenario besar menyimpan *snapshot* JSON untuk **U
   pemain di dalam rumah.
 - **TownView** — jalan, rumah tetangga, sekolah, toko dengan papan nama (teks dirender Avalonia),
   taman, pantai, hutan, perkemahan, bianglala & komidi putar berputar, awan, lampu jalan terdekat.
-- **CharacterView** — lima GLB ter-rig, 12 klip animasi dengan *cross-fade*, pose duduk/berbaring
-  di perabot, label nama, gelembung ucapan, penanda 🆘/💤, cincin pemain, senter (spot light).
+- **CharacterView** — lima GLB ter-rig, 12 klip animasi dengan *cross-fade* (Talk saat berbicara),
+  pose duduk/berbaring di perabot, topi kostum, label nama, gelembung ucapan, penanda 🆘/💤, cincin
+  pemain, senter (spot light). Tetangga, pengunjung skenario dan anjing/kucing memakai
+  **`AnimatedFigure`**: GLB diimpor per instance (klip ThreeNet terikat ke node impornya), dengan
+  cadangan mannequin/primitif bila file tidak ada. Pemutar animasi **harus dihentikan sebelum node
+  dihapus**, karena ThreeNet memakai ulang id node dan pemutar yang masih berjalan akan menggerakkan
+  node baru.
 - **Effects** — partikel billboard (hati, bintang, konfeti, kembang api, asap, uap, api aditif,
   percikan, tepung, daun, zzz, not musik, koin) dan tirai hujan.
 - Pencahayaan: matahari dengan bayangan bertingkat, langit/ambient/kabut mengikuti jam & cuaca,

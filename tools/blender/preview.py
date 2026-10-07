@@ -14,7 +14,7 @@ cam.data.type='ORTHO'; cam.data.ortho_scale=size*1.15
 view = args[2] if len(args)>2 else "front"
 d = {"front":mathutils.Vector((0,-1,0)),"side":mathutils.Vector((1,0,0)),"back":mathutils.Vector((0,1,0))}[view]
 cam.location=c+d*size*3
-cam.rotation_euler=(-d).to_track_quat('-Z','Z').to_euler()
+cam.rotation_euler=(-d).to_track_quat('-Z','Y').to_euler()
 bpy.context.scene.camera=cam
 sun=bpy.data.objects.new("sun", bpy.data.lights.new("sun",'SUN')); bpy.context.scene.collection.objects.link(sun); sun.rotation_euler=(0.8,0.2,0.3)
 sc=bpy.context.scene

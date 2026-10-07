@@ -6,13 +6,14 @@ Semua aset dibuat khusus untuk game ini.
 art/
 ├─ concept/   concept art (Rodin MCP: Nano Banana 2 / Qwen Image)
 ├─ raw/       model 3D mentah dari Rodin (Generate3DFromPrompt), T-pose untuk karakter
-├─ rigged/    5 karakter ter-rig + 12 animasi (Blender MCP)
-├─ props/     perabot & hewan yang sudah dioptimasi (Blender)
+├─ rigged/    14 karakter ter-rig + 12 animasi, anjing & kucing ter-rig + 6 animasi (Blender MCP)
+├─ props/     perabot, monyet, ular & pohon yang sudah dioptimasi (Blender)
 └─ voice/     suara karakter (ElevenLabs v3 via Rodin MCP)
 tools/blender/
-├─ rig_character.py   rigging + skinning + animasi + ekspor GLB
+├─ rig_character.py   rigging + skinning + animasi + ekspor GLB (manusia)
+├─ rig_animal.py      rig berkaki empat (anjing, kucing) + 6 animasi
 ├─ optimize_prop.py   decimate + kompres tekstur + ekspor GLB
-├─ preview.py / preview_anim.py   render pratinjau pose
+├─ preview.py / preview_anim.py / preview_poses.py   render pratinjau model & pose
 ```
 
 ## 1. Concept art (Rodin MCP)
@@ -34,6 +35,11 @@ ada 14 aset: sofa, ranjang loteng, ranjang ganda, konter dapur, kulkas, set meja
 mobil, ayunan, lemari TV, pohon bunga, rak buku, anjing dan kucing.
 
 ![](images/rodin-props.png)
+
+**v1.1** menambah 9 orang dalam T-pose (Nenek Sari, Pak Budi, Dimas, Bu Guru Rina, dr. Sinta, polisi,
+pemadam kebakaran, tim SAR dan orang asing berkerudung), anjing dan kucing **berdiri** (agar bisa di-rig),
+monyet yang memegang pisang, ular melingkar, dan pohon peneduh. Pohon dipakai bergantian dengan pohon
+prosedural di kota dan halaman.
 
 Semua prop menghadap +Z. `optimize_prop.py` menurunkannya ke ±6.000 face dan tekstur 1024 px JPEG,
 sehingga ukurannya turun dari ±9 MB ke ±0,4 MB per model. Di game, `ModelLibrary` mengimpor setiap GLB
@@ -64,16 +70,43 @@ Skrip ini:
 ![](images/rig-family-poses.png)
 
 Di game, `CharacterView` memutar klip dengan *cross-fade* bobot, menyesuaikan tinggi pinggul saat
-duduk, dan memutar badan saat berbaring di ranjang.
+duduk, dan memutar badan saat berbaring di ranjang. Saat ada balon bicara dan anggota sedang berdiri,
+klip **Talk** diputar.
+
+Skrip yang sama me-rig tetangga dan petugas v1.1 (tinggi 1,36–1,75 m). Di game mereka dimuat
+per instance oleh `AnimatedFigure` dengan klip Walk/Idle/Talk/Run:
+
+![](images/rig-npc-walk.png)
+
+### Hewan berkaki empat
+
+`tools/blender/rig_animal.py` memakai fungsi bantu `rig_character.py` dan:
+
+1. Mencari telapak kaki (empat kelompok verteks terbawah), punggung dan perut di antara kaki, kepala
+   (ujung depan di atas bahu) dan ekor (verteks paling belakang di atas pantat).
+2. Membuat tulang Body, Neck, Head, Tail1/Tail2 dan dua tulang per kaki.
+3. Membuat **Idle** (bernapas, ekor bergoyang), **Walk/Run** (kaki diagonal berpasangan), **Sit**,
+   **Sleep** (berbaring, kaki dilipat) dan **Bark**.
+
+```python
+ns = {"__file__": r".../tools/blender/rig_animal.py"}
+exec(open(ns["__file__"]).read(), ns)
+ns["process"](r"art/raw/dog-standing.glb", r"art/rigged/dog.glb", 0.62)
+```
+
+![](images/rig-pets-poses.png)
+
+`preview_poses.py` merender beberapa aksi sekaligus untuk pemeriksaan cepat:
+`blender -b --python tools/blender/preview_poses.py -- art/rigged/dog.glb out/d 1.0 Idle:1 Walk:7 Sit:1`.
 
 ## 4. Suara karakter
 
-Kalimat penting direkam dengan `GenerateVoiceWithElevenLabsV3` (Bahasa Indonesia). Saat ini tersedia
-`mom_breakfast`, `dad_greet`, `dad_fix`, `dad_storm`, `dad_safe` dan `dad_cheer` di
-`src/OurHappyHome/Assets/Voice/`. Kunci lain yang dipakai kode, misalnya `ys_scared`, `os_cat`,
-`mom_dinner` dan `boy_found`, akan otomatis memakai file MP3 bernama sama jika ditambahkan. Kalimat
-tanpa rekaman memakai **suara babble sintetis** dengan nada khas tiap karakter, dan suara anak
-dinaikkan nadanya sedikit. Subtitle selalu tersedia.
+Kalimat penting direkam dengan `GenerateVoiceWithElevenLabsV3` (Bahasa Indonesia). Ada 45 file di
+`src/OurHappyHome/Assets/Voice/`: kalimat keluarga (`dad_*`, `mom_*`, `os_*`, `boy_*`, `ys_*`, misalnya
+`ys_scared`, `os_cat`, `mom_dinner`, `boy_found`) dan tiga kalimat untuk setiap tetangga
+(`npc_grandma_0..2`, `npc_budi_*`, `npc_dimas_*`, `npc_teacher_*`, `npc_doctor_*`). Teks subtitle di
+kode sama persis dengan isi rekaman. Kalimat tanpa rekaman memakai **suara babble sintetis** dengan nada
+khas tiap karakter, dan suara anak dinaikkan nadanya sedikit. Subtitle selalu tersedia.
 
 ## 5. Musik & efek suara (prosedural)
 

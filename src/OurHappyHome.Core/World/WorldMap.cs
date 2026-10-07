@@ -48,6 +48,17 @@ public enum FeatureKind
     Pier,
     Umbrella,
     Sign,
+
+    // Interiors (school classroom, supermarket, clinic).
+    InteriorFloor,
+    InteriorWall,
+    Door,
+    Shelf,
+    Counter,
+    Desk,
+    Board,
+    ClinicBed,
+    Plant,
 }
 
 /// <summary>
@@ -59,7 +70,8 @@ public sealed record TownFeature(FeatureKind Kind, Rect Area, float Height, stri
     public bool Solid => Kind is FeatureKind.House or FeatureKind.School or FeatureKind.Shop or FeatureKind.Tree or FeatureKind.PineTree
         or FeatureKind.Fence or FeatureKind.Pond or FeatureKind.Ocean or FeatureKind.Rock or FeatureKind.Tent or FeatureKind.FerrisWheel
         or FeatureKind.Carousel or FeatureKind.Mountain or FeatureKind.ParkedCar or FeatureKind.LampPost or FeatureKind.Bush
-        or FeatureKind.Campfire or FeatureKind.Playground;
+        or FeatureKind.Campfire or FeatureKind.Playground or FeatureKind.InteriorWall or FeatureKind.Door or FeatureKind.Shelf
+        or FeatureKind.Counter or FeatureKind.Desk or FeatureKind.Board or FeatureKind.ClinicBed or FeatureKind.Plant;
 
     /// <summary>Trees and posts only block near their trunk.</summary>
     public Rect CollisionArea => Kind switch
@@ -84,6 +96,16 @@ public sealed record Place(PlaceId Id, Rect Area, Vector2 Entrance, float Entran
 }
 
 /// <summary>
+/// The inside of a town building. Interiors are diorama rooms built in an
+/// empty corner of the map: entering teleports the party in, the exit mat
+/// teleports them back to the building's entrance.
+/// </summary>
+public sealed record Interior(PlaceId Place, Rect Area, Vector2 Spawn, float SpawnYaw, Vector2 Exit, IReadOnlyList<Vector2> Services)
+{
+    public string Name => WorldMap.Name(Place);
+}
+
+/// <summary>
 /// The town around the family home, laid out like the design document's map:
 /// <code>
 ///                  Mountain / Camping (north, -Z)
@@ -105,6 +127,12 @@ public sealed class WorldMap
 
     public List<Place> Places { get; } = [];
 
+    public List<Interior> Interiors { get; } = [];
+
+    public Interior? InteriorFor(PlaceId id) => Interiors.FirstOrDefault(i => i.Place == id);
+
+    public Interior? InteriorAt(Vector2 p) => Interiors.FirstOrDefault(i => i.Area.Contains(p));
+
     public static WorldMap Generate(int seed = 7)
     {
         WorldMap map = new();
@@ -117,6 +145,11 @@ public sealed class WorldMap
 
     public PlaceId? PlaceAt(Vector2 p)
     {
+        if (InteriorAt(p) is { } inside)
+        {
+            return inside.Place;
+        }
+
         // Small places first so a shop inside downtown wins over the district.
         foreach (Place place in Places.OrderBy(pl => pl.Area.Width * pl.Area.Depth))
         {
@@ -313,6 +346,75 @@ public sealed class WorldMap
 
             Add(FeatureKind.PineTree, Rect.FromCenter(p, new Vector2(4f, 4f)), random.Range(7f, 12f), "#2F6B3A");
         }
+
+        BuildInteriors();
+    }
+
+    // ------------------------------------------------------------ interiors
+
+    /// <summary>Floor, four low walls (cutaway height) and a door on the south side.</summary>
+    private Rect Room(Vector2 center, Vector2 size, string floor, string wall)
+    {
+        Rect a = Rect.FromCenter(center, size);
+        const float t = 0.2f;
+        const float h = 1.5f;
+        Add(FeatureKind.InteriorFloor, a, 0.02f, "#C9A26B", 0f, floor);
+        Add(FeatureKind.InteriorWall, new Rect(a.X0 - t, a.Z0 - t, a.X1 + t, a.Z0), h, wall);
+        Add(FeatureKind.InteriorWall, new Rect(a.X0 - t, a.Z1, a.X1 + t, a.Z1 + t), h, wall);
+        Add(FeatureKind.InteriorWall, new Rect(a.X0 - t, a.Z0, a.X0, a.Z1), h, wall);
+        Add(FeatureKind.InteriorWall, new Rect(a.X1, a.Z0, a.X1 + t, a.Z1), h, wall);
+        Add(FeatureKind.Door, Rect.FromCenter(new Vector2(center.X, a.Z1 + 0.1f), new Vector2(1.4f, 0.12f)), 2.2f, "#8E5B3E", 0f, Loc.T("Keluar", "Exit"));
+        return a;
+    }
+
+    private void BuildInteriors()
+    {
+        // School classroom: blackboard, teacher's desk and twelve pupil desks.
+        Vector2 sc = new(252f, -280f);
+        Room(sc, new Vector2(18f, 12f), "wood", "#F3E3C3");
+        Add(FeatureKind.Board, Rect.FromCenter(sc + new Vector2(0f, -5.6f), new Vector2(6f, 0.15f)), 2.6f, "#2F5D3A", 0f, "A B C   1 + 2 = 3");
+        Add(FeatureKind.Desk, Rect.FromCenter(sc + new Vector2(0f, -3.6f), new Vector2(2f, 0.9f)), 0.8f, "#8E5B3E", 0f, "teacher");
+        for (int row = 0; row < 3; row++)
+        {
+            for (int col = 0; col < 4; col++)
+            {
+                Add(FeatureKind.Desk, Rect.FromCenter(sc + new Vector2(-6f + (col * 4f), -0.8f + (row * 2.3f)), new Vector2(1.2f, 0.7f)), 0.7f, "#C9A26B");
+            }
+        }
+
+        Add(FeatureKind.Plant, Rect.FromCenter(sc + new Vector2(-8.2f, -5.2f), new Vector2(0.8f, 0.8f)), 1.3f, "#4E9A4B");
+        Add(FeatureKind.Plant, Rect.FromCenter(sc + new Vector2(8.2f, -5.2f), new Vector2(0.8f, 0.8f)), 1.3f, "#4E9A4B");
+        Add(FeatureKind.Shelf, Rect.FromCenter(sc + new Vector2(8.3f, 0f), new Vector2(0.7f, 3f)), 1.4f, "#B5835A", 0f, "books");
+        Interiors.Add(new Interior(PlaceId.School, Rect.FromCenter(sc, new Vector2(18f, 12f)), sc + new Vector2(0f, 3.8f), MathF.PI,
+            sc + new Vector2(0f, 5.5f), [sc + new Vector2(0f, -2.7f)]));
+
+        // Supermarket: four aisles of shelves and a cashier by the door.
+        Vector2 sm = new(280f, -280f);
+        Room(sm, new Vector2(20f, 12f), "tile", "#DDF1E4");
+        string[] shelfColors = ["#E4572E", "#F3A712", "#29335C", "#669BBC"];
+        for (int i = 0; i < 4; i++)
+        {
+            Vector2 c = sm + new Vector2(i % 2 == 0 ? -4.5f : 4.5f, i < 2 ? -3.2f : -0.4f);
+            Add(FeatureKind.Shelf, Rect.FromCenter(c, new Vector2(7f, 0.9f)), 1.5f, shelfColors[i], 0f, "groceries");
+        }
+
+        Add(FeatureKind.Shelf, Rect.FromCenter(sm + new Vector2(0f, -5.5f), new Vector2(12f, 0.7f)), 1.7f, "#A8C686", 0f, "fridge");
+        Add(FeatureKind.Counter, Rect.FromCenter(sm + new Vector2(-6.5f, 3.4f), new Vector2(3f, 1f)), 1.0f, "#7CC7A1", 0f, Loc.T("Kasir", "Cashier"));
+        Add(FeatureKind.Plant, Rect.FromCenter(sm + new Vector2(9.2f, 5.2f), new Vector2(0.8f, 0.8f)), 1.3f, "#4E9A4B");
+        Interiors.Add(new Interior(PlaceId.Supermarket, Rect.FromCenter(sm, new Vector2(20f, 12f)), sm + new Vector2(0f, 3.8f), MathF.PI,
+            sm + new Vector2(0f, 5.5f), [sm + new Vector2(-6.5f, 2.4f), sm + new Vector2(-4.5f, -1.8f), sm + new Vector2(4.5f, -1.8f), sm + new Vector2(0f, -4.6f)]));
+
+        // Clinic: reception, the doctor's desk, two beds and a waiting bench.
+        Vector2 cl = new(252f, -258f);
+        Room(cl, new Vector2(14f, 10f), "checker", "#F4F8FB");
+        Add(FeatureKind.Counter, Rect.FromCenter(cl + new Vector2(-4.2f, 2.2f), new Vector2(3f, 0.9f)), 1.0f, "#9BD1E5", 0f, Loc.T("Pendaftaran", "Reception"));
+        Add(FeatureKind.Desk, Rect.FromCenter(cl + new Vector2(-3f, -3.2f), new Vector2(1.8f, 0.9f)), 0.8f, "#FFFFFF", 0f, "teacher");
+        Add(FeatureKind.ClinicBed, Rect.FromCenter(cl + new Vector2(2.6f, -3.4f), new Vector2(1.1f, 2.1f)), 0.7f, "#FFFFFF");
+        Add(FeatureKind.ClinicBed, Rect.FromCenter(cl + new Vector2(5.2f, -3.4f), new Vector2(1.1f, 2.1f)), 0.7f, "#FFFFFF");
+        Add(FeatureKind.Bench, Rect.FromCenter(cl + new Vector2(4f, 3.6f), new Vector2(3f, 0.5f)), 0.5f, "#7FA7C9");
+        Add(FeatureKind.Plant, Rect.FromCenter(cl + new Vector2(-6.3f, -4.2f), new Vector2(0.8f, 0.8f)), 1.3f, "#4E9A4B");
+        Interiors.Add(new Interior(PlaceId.Clinic, Rect.FromCenter(cl, new Vector2(14f, 10f)), cl + new Vector2(0f, 2.8f), MathF.PI,
+            cl + new Vector2(0f, 4.5f), [cl + new Vector2(-3f, -2.3f), cl + new Vector2(-4.2f, 1.3f)]));
     }
 
     private void Fence(float x0, float z0, float x1, float z1, bool horizontal)

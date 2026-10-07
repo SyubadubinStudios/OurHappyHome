@@ -149,6 +149,14 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         await Shot("town-map");
         game.ClosePanel();
 
+        // Decorate a few album photos with frames and stickers.
+        string[] frames = ["gold", "pastel", "wood", "film"];
+        foreach ((FamilyMemory memory, int i) in session.State.Memories.AsEnumerable().Reverse().Take(4).Select((m, i) => (m, i)))
+        {
+            memory.Frame = frames[i];
+            memory.Stickers = [.. new[] { "⭐", "💖", "🌈" }.Take(1 + (i % 3))];
+        }
+
         game.OpenPanel("album");
         await Wait(1.5);
         await Shot("family-album");
@@ -157,6 +165,77 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         game.OpenPanel("pause");
         await Wait(1);
         await Shot("pause-menu");
+        game.ClosePanel();
+
+        // v1.1: rigged neighbours, pets and scenario visitors.
+        session.Travel(PlaceId.Home, true);
+        await JumpTo(game, 16f);
+        session.SetWeather(WeatherKind.Sunny);
+        session.AdoptPet(PetKind.Dog, "Coco");
+        session.AdoptPet(PetKind.Cat, "Mochi");
+        Npc grandma = session.Npcs.First(n => n.Id == "grandma");
+        session.Controlled.Position = grandma.Home + new Vector2(-1.6f, 2.2f);
+        grandma.Position = grandma.Home;
+        grandma.TalkTo(session.Controlled.Position, 8f);
+        session.Controlled.Yaw = MathF.Atan2(grandma.Position.X - session.Controlled.Position.X, grandma.Position.Y - session.Controlled.Position.Y);
+        foreach ((Pet pet, int i) in session.State.Pets.Select((p, i) => (p, i)))
+        {
+            pet.Position = session.Controlled.Position + new Vector2(0.9f + (i * 0.7f), 0.6f);
+        }
+
+        await EndScenario(session);
+        game.Renderer!.Rig.Yaw = 0.5f;
+        game.Renderer!.Rig.Snap(new Vector3(session.Controlled.Position.X, 1f, session.Controlled.Position.Y));
+        await Simulate(game, 0, realSeconds: 3);
+        await Shot("neighbours-pets");
+
+        await VisitorShot(game, ScenarioKind.MonkeyThief, "monkey-thief");
+        await VisitorShot(game, ScenarioKind.SuspiciousStranger, "stranger-visitor");
+
+        // Enterable buildings.
+        session.SetWeather(WeatherKind.Sunny);
+        await InteriorShot(game, PlaceId.School, 9.5f, "interior-classroom");
+        await InteriorShot(game, PlaceId.Supermarket, 10.5f, "interior-supermarket");
+        await InteriorShot(game, PlaceId.Clinic, 11.5f, "interior-clinic");
+
+        // Costumes from the dress-up box.
+        session.Travel(PlaceId.Home, true);
+        await JumpTo(game, 16.5f);
+        session.SetWeather(WeatherKind.Sunny);
+        string[] hats = ["straw-hat", "crown", "cat-ears", "party-hat", "beanie"];
+        foreach (string hat in hats)
+        {
+            session.State.Inventory.Add(hat, 1);
+        }
+
+        foreach ((FamilyMember m, int i) in session.State.Members.Select((m, i) => (m, i)))
+        {
+            session.SetAccessory(m.Id, hats[i]);
+        }
+
+        // Line up in the front yard facing the camera.
+        await Simulate(game, 0, realSeconds: 1);
+        session.Paused = true;
+        foreach ((FamilyMember m, int i) in session.State.Members.Select((m, i) => (m, i)))
+        {
+            m.Task = null;
+            m.Anchor = null;
+            m.Pose = AnchorPose.Stand;
+            m.Moving = false;
+            m.Position = new Vector2(-3.4f + (i * 1.1f), 11.2f);
+            m.Yaw = 0f;
+        }
+
+        game.Renderer!.Rig.Yaw = 0f;
+        game.Renderer!.Rig.Zoom = 0.55f;
+        game.Renderer!.Rig.Snap(new Vector3(-1.2f, 1f, 11.2f));
+        await Wait(0.6);
+        await Shot("family-costumes");
+        game.Renderer!.Rig.Zoom = 1f;
+        session.Paused = false;
+        game.OpenPanel("wardrobe");
+        await Wait(1.2);
+        await Shot("wardrobe");
         game.ClosePanel();
 
         Dispatcher.UIThread.Post(() => window.Close());
@@ -239,6 +318,41 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
 
             m.Sick = false;
         }
+    }
+
+    /// <summary>Takes the family inside a town building at the given hour.</summary>
+    private async Task InteriorShot(GameScreen game, PlaceId place, float hour, string name)
+    {
+        GameSession session = game.Session;
+        await EndScenario(session);
+        session.Travel(place, true);
+        await JumpTo(game, hour);
+        await EndScenario(session);
+        session.EnterInterior(place);
+        await Simulate(game, 0, realSeconds: 3);
+        await Shot(name);
+        session.ExitInterior();
+    }
+
+    /// <summary>Starts a scenario and frames its first visitor.</summary>
+    private async Task VisitorShot(GameScreen game, ScenarioKind kind, string name)
+    {
+        GameSession session = game.Session;
+        await EndScenario(session);
+        session.StartScenario(kind);
+        await Simulate(game, 0, realSeconds: 3);
+        if (session.Scenario?.Actors.FirstOrDefault(a => a.Visible) is { } actor)
+        {
+            // Close enough to frame, far enough not to scare the visitor away.
+            session.Controlled.Position = actor.Position + new Vector2(2.2f, 3.2f);
+            game.Renderer!.Rig.Snap(new Vector3(actor.Position.X, 1f, actor.Position.Y));
+        }
+
+        game.Renderer!.Rig.Zoom = 0.6f;
+        await Wait(0.8);
+        await Shot(name);
+        game.Renderer!.Rig.Zoom = 1f;
+        await EndScenario(session);
     }
 
     private static async Task EndScenario(GameSession session)

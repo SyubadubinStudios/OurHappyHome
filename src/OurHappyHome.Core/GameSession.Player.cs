@@ -77,7 +77,7 @@ public sealed partial class GameSession
     /// <summary>All members that are at home and visible, for the family status panel.</summary>
     public IEnumerable<FamilyMember> VisibleMembers => State.Members.Where(m => !m.Away);
 
-    public bool IsIndoors(Vector2 p) => State.House.IsIndoors(p);
+    public bool IsIndoors(Vector2 p) => State.House.IsIndoors(p) || Map.InteriorAt(p) is not null;
 
     /// <summary>Lights in a room are on when it is dark outside, the power is on and someone is around.</summary>
     public bool RoomLit(RoomId room)

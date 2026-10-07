@@ -189,7 +189,7 @@ public sealed class GameRenderer : IDisposable
         _fill.LookAt(new Vector3(0.3f, -1f, -0.4f));
 
         bool outside = !Session.IsIndoors(Session.Controlled.Position);
-        Effects.RainIntensity = weather.IsRaining ? weather.Intensity * (outside ? 1f : 0.55f) : 0f;
+        Effects.RainIntensity = weather.IsRaining && Session.CurrentInterior is null ? weather.Intensity * (outside ? 1f : 0.55f) : 0f;
         Effects.Wind = weather.Current switch
         {
             WeatherKind.Windy => 2.5f * weather.Intensity,
