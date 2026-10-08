@@ -30,6 +30,10 @@ public sealed class TownView
     private readonly List<Node> _windowsAtNight = [];
     private Node? _campLight;
     private readonly Node _festival;
+    private readonly List<(Node Node, float Phase)> _foam = [];
+    private readonly List<(Node Node, Vector2 Center, float Radius, float Speed, float Height, float Phase)> _gulls = [];
+    private float _fireflyTimer;
+    private int _butterflyTick;
     private readonly List<Node> _lanterns = [];
     private bool _festivalShown = true;
     private float _time;
@@ -45,14 +49,17 @@ public sealed class TownView
         _root = scene.CreateNode(null, "town");
         _festival = scene.CreateNode(_root, "festival");
 
-        Material ground = _scene.CreateMaterial(_t.Grass.Options with { UvScale = new Vector2(70f, 70f) });
+        // Large enough that its edge is never within the camera's 700 m view distance.
         Rect b = WorldMap.Bounds;
-        _m.Ground(_root, new Vector3(b.Center.X, -0.02f, b.Center.Y), b.Size + new Vector2(400f, 400f), ground, "world-ground");
+        Material wideGround = _scene.CreateMaterial(_t.Grass.Options with { UvScale = new Vector2(220f, 220f) });
+        _m.Ground(_root, new Vector3(b.Center.X, -0.02f, b.Center.Y), b.Size + new Vector2(2200f, 2200f), wideGround, "world-ground");
 
         foreach (TownFeature feature in map.Features)
         {
             Build(feature);
         }
+
+        BuildSeagulls();
 
         for (int i = 0; i < MaxStreetLights; i++)
         {
@@ -106,7 +113,7 @@ public sealed class TownView
                 _m.Ground(_root, new Vector3(c.X, 0.005f + (f.Height * 0.1f), c.Y), a.Size, _scene.CreateMaterial(_t.Lawn.Options with { UvScale = a.Size / 6f }), "field");
                 break;
             case FeatureKind.Sand:
-                _m.Ground(_root, new Vector3(c.X, 0.01f, c.Y), a.Size, _scene.CreateMaterial(_t.Sand.Options with { UvScale = a.Size / 8f }), "sand");
+                _m.Ground(_root, new Vector3(c.X, 0.01f, c.Y), a.Size, _scene.CreateMaterial(_t.Sand.Options with { UvScale = a.Size / 8f, BaseColor = new Vector4(0.93f, 0.83f, 0.64f, 1f) }), "sand");
                 break;
             case FeatureKind.Ocean:
             case FeatureKind.Pond:
@@ -122,7 +129,15 @@ public sealed class TownView
                 }
                 else
                 {
-                    _m.Ground(_root, new Vector3(c.X, 0.05f, c.Y + 200f), new Vector2(a.Width + 400f, a.Depth + 400f), _t.Water, "ocean");
+                    // Deep, matt blue so the sea still reads as water at the low beach camera angle.
+                    Material sea = _scene.CreateMaterial(_t.Water.Options with
+                    {
+                        BaseColor = new Vector4(0.05f, 0.36f, 0.55f, 1f),
+                        Roughness = 0.45f,
+                        Reflectance = 0.06f,
+                        UvScale = new Vector2(120f, 60f),
+                    });
+                    _m.Ground(_root, new Vector3(c.X, 0.05f, a.Z0 + 760f), new Vector2(a.Width + 2400f, 1520f), sea, "ocean");
                 }
 
                 break;
@@ -139,7 +154,11 @@ public sealed class TownView
                 {
                     Node tree = _scene.CreateNode(_root, "tree");
                     tree.Position = new Vector3(c.X, 0f, c.Y);
-                    if (f.Label == "palm")
+                    if (f.Label == "palm" && _models.Height("palm-tree", tree, f.Height, f.Yaw) is not null)
+                    {
+                        tree.SetShadowsRecursive(true, true);
+                    }
+                    else if (f.Label == "palm")
                     {
                         _m.Cylinder(tree, new Vector3(0f, f.Height / 2f, 0f), 0.18f, f.Height, _t.Solid("#9C7A54", 0.9f), true);
                         for (int i = 0; i < 6; i++)
@@ -162,6 +181,12 @@ public sealed class TownView
                 {
                     Node tree = _scene.CreateNode(_root, "pine");
                     tree.Position = new Vector3(c.X, 0f, c.Y);
+                    if (_models.Height("pine-tree", tree, f.Height, c.X * 0.37f) is not null)
+                    {
+                        tree.SetShadowsRecursive(true, true);
+                        break;
+                    }
+
                     float r = a.Width / 2f;
                     _m.Cylinder(tree, new Vector3(0f, 0.8f, 0f), 0.22f, 1.6f, _t.Solid("#6E4B2A", 0.9f), true);
                     _m.Cone(tree, new Vector3(0f, 1.2f, 0f), r, f.Height * 0.55f, color);
@@ -232,8 +257,47 @@ public sealed class TownView
             case FeatureKind.Rock:
                 _m.Sphere(_root, new Vector3(c.X, f.Height * 0.3f, c.Y), new Vector3(a.Width, f.Height, a.Depth), color, true);
                 break;
+            case FeatureKind.Prop:
+                {
+                    Node prop = _scene.CreateNode(_root, f.Label);
+                    prop.Position = new Vector3(c.X, 0f, c.Y);
+                    if (_models.Height(f.Label, prop, f.Height, f.Yaw) is null && !ProceduralProp(prop, f))
+                    {
+                        _m.Block(prop, 0f, 0f, 0f, new Vector3(a.Width * 0.8f, f.Height, a.Depth * 0.8f), color);
+                    }
+
+                    prop.SetShadowsRecursive(true, true);
+                    break;
+                }
+
+            case FeatureKind.Shore:
+                Shore(f);
+                break;
+            case FeatureKind.Decal:
+                {
+                    Material decal = f.Label == "trail" ? _scene.CreateMaterial(_t.Dirt.Options with { UvScale = a.Size / 2f }) : color;
+                    Node flat = _m.Ground(_root, new Vector3(c.X, f.Label == "trail" ? 0.045f : 0.05f, c.Y), a.Size, decal, f.Label);
+                    flat.Rotation = Quaternion.CreateFromYawPitchRoll(f.Yaw, -MathF.PI / 2f, 0f);
+                    flat.CastShadow = false;
+                    if (f.Label == "towel")
+                    {
+                        Node stripe = _m.Ground(_root, new Vector3(c.X, 0.055f, c.Y), new Vector2(a.Width, a.Depth * 0.18f), _t.Solid("#FFFFFF", 0.9f), "towel-stripe");
+                        stripe.Rotation = Quaternion.CreateFromYawPitchRoll(f.Yaw, -MathF.PI / 2f, 0f);
+                        stripe.CastShadow = false;
+                    }
+
+                    break;
+                }
             case FeatureKind.Tent:
                 {
+                    Node dome = _scene.CreateNode(_root, "tent");
+                    dome.Position = new Vector3(c.X, 0f, c.Y);
+                    if (_models.Height(f.Color == "#F4A259" ? "dome-tent" : "dome-tent-blue", dome, f.Height + 0.2f, c.X * 0.2f) is not null)
+                    {
+                        dome.SetShadowsRecursive(true, true);
+                        break;
+                    }
+
                     Node tent = _m.Cone(_root, new Vector3(c.X, 0f, c.Y), a.Width / 2f, f.Height, color, pyramid: true);
                     tent.EulerAngles = new Vector3(0f, MathF.PI / 4f, 0f);
                     _m.Box(_root, new Vector3(c.X, 0.5f, c.Y + (a.Width * 0.36f)), new Vector3(0.6f, 1f, 0.02f), _t.Solid("#3D2B1F", 0.9f));
@@ -495,6 +559,109 @@ public sealed class TownView
         }
     }
 
+    /// <summary>Small beach props built from primitives: sandcastles, balls, surfboards and a volleyball net.</summary>
+    private bool ProceduralProp(Node prop, TownFeature f)
+    {
+        float h = f.Height;
+        prop.EulerAngles = new Vector3(0f, f.Yaw, 0f);
+        switch (f.Label)
+        {
+            case "sandcastle":
+                {
+                    Material sand = _t.Solid("#E3C98F", 0.95f);
+                    _m.Block(prop, 0f, 0f, 0f, new Vector3(h * 1.4f, h * 0.35f, h * 1.4f), sand);
+                    foreach ((float x, float z) in new[] { (-0.45f, -0.45f), (0.45f, -0.45f), (-0.45f, 0.45f), (0.45f, 0.45f) })
+                    {
+                        _m.Cylinder(prop, new Vector3(x * h, h * 0.55f, z * h), h * 0.18f, h * 0.45f, sand, true);
+                        _m.Cone(prop, new Vector3(x * h, h * 0.78f, z * h), h * 0.2f, h * 0.22f, sand, pyramid: true);
+                    }
+
+                    _m.Cylinder(prop, new Vector3(0f, h * 0.6f, 0f), h * 0.28f, h * 0.55f, sand, true);
+                    _m.Cone(prop, new Vector3(0f, h * 0.88f, 0f), h * 0.3f, h * 0.25f, sand);
+                    _m.Box(prop, new Vector3(0.08f, h * 1.2f, 0f), new Vector3(0.18f, 0.12f, 0.01f), _t.Solid("#E63946", 0.6f));
+                    return true;
+                }
+
+            case "beach-ball":
+                {
+                    string[] colors = ["#E63946", "#FFFFFF", "#4A90D9", "#FFD23F"];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Node slice = _m.Sphere(prop, new Vector3(0f, h * 0.5f, 0f), new Vector3(h * (1f - (i * 0.02f)), h, h * (0.25f + (i * 0.25f))), _t.Solid(colors[i], 0.4f), true);
+                        slice.EulerAngles = new Vector3(0f, i * 0.8f, 0f);
+                    }
+
+                    return true;
+                }
+
+            case "surfboard":
+                {
+                    Node board = _m.Sphere(prop, new Vector3(0f, h * 0.48f, 0f), new Vector3(0.55f, h, 0.1f), _t.Solid(f.Area.Center.X % 2 < 1 ? "#FF7B54" : "#2A9D8F", 0.35f), true);
+                    board.EulerAngles = new Vector3(0.08f, 0f, 0f);
+                    _m.Box(prop, new Vector3(0f, h * 0.5f, 0.05f), new Vector3(0.06f, h * 0.8f, 0.01f), _t.Solid("#FFFFFF", 0.4f));
+                    return true;
+                }
+
+            case "volleyball":
+                {
+                    float w = f.Area.Width;
+                    Material pole = _t.Solid("#DDDDDD", 0.3f, 0.5f);
+                    _m.Cylinder(prop, new Vector3(-w / 2f, h / 2f, 0f), 0.05f, h, pole, true);
+                    _m.Cylinder(prop, new Vector3(w / 2f, h / 2f, 0f), 0.05f, h, pole, true);
+                    Node net = _m.Box(prop, new Vector3(0f, h - 0.45f, 0f), new Vector3(w, 0.8f, 0.02f), _t.Solid("#F5F5F5", 0.9f));
+                    net.CastShadow = false;
+                    _m.Box(prop, new Vector3(0f, h - 0.04f, 0f), new Vector3(w, 0.07f, 0.04f), _t.Solid("#2E6FBF", 0.6f));
+                    return true;
+                }
+
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Wet sand, a turquoise shallow band and foam lines that wash in and out.</summary>
+    private void Shore(TownFeature f)
+    {
+        Rect a = f.Area;
+        float shoreline = 300f;
+        _m.Ground(_root, new Vector3(a.Center.X, 0.025f, (a.Z0 + shoreline) / 2f), new Vector2(a.Width, shoreline - a.Z0), _t.Solid("#D9BF86", 0.95f), "wet-sand");
+        Material shallow = _scene.CreateMaterial(MaterialOptions.Pbr(new Vector4(0.3f, 0.78f, 0.82f, 0.85f), 0f, 0.2f) with
+        {
+            AlphaMode = AlphaMode.Blend,
+            DepthWrite = false,
+            NormalMap = _t.Water.Options.NormalMap,
+            NormalScale = 0.4f,
+            UvScale = new Vector2(80f, 2f),
+        });
+        Node band = _m.Ground(_root, new Vector3(a.Center.X, 0.07f, (shoreline + a.Z1) / 2f + 1f), new Vector2(a.Width, a.Z1 - shoreline + 2f), shallow, "shallow-water");
+        band.CastShadow = false;
+        Material foam = _t.Solid("#FFFFFF", 0.6f, emissive: 0.15f);
+        for (int i = 0; i < 3; i++)
+        {
+            Node line = _m.Ground(_root, new Vector3(a.Center.X, 0.08f + (i * 0.002f), shoreline + i), new Vector2(a.Width, 0.35f - (i * 0.08f)), foam, "foam");
+            line.CastShadow = false;
+            _foam.Add((line, i * 2.1f));
+        }
+    }
+
+    /// <summary>Seagulls circling over the beach and the pier.</summary>
+    private void BuildSeagulls()
+    {
+        Random r = new(17);
+        for (int i = 0; i < 7; i++)
+        {
+            Node gull = _scene.CreateNode(_root, "gull");
+            if (_models.Height("seagull", gull, 0.7f) is null)
+            {
+                _m.Sphere(gull, Vector3.Zero, new Vector3(0.9f, 0.15f, 0.35f), _t.Solid("#FFFFFF"), true);
+            }
+
+            gull.SetShadowsRecursive(false, false);
+            Vector2 center = new(10f + (float)(r.NextDouble() * 120f), 285f + (float)(r.NextDouble() * 25f));
+            _gulls.Add((gull, center, 8f + (float)(r.NextDouble() * 18f), 0.25f + (float)(r.NextDouble() * 0.25f), 8f + (float)(r.NextDouble() * 7f), (float)(r.NextDouble() * MathF.Tau)));
+        }
+    }
+
     private void FestivalStall(TownFeature f, Material awning)
     {
         Rect a = f.Area;
@@ -674,6 +841,51 @@ public sealed class TownView
         }
 
         _t.Water.Update(o => o with { UvOffset = new Vector2(_time * 0.01f, _time * 0.006f) });
+
+        // Waves wash up the beach and back.
+        foreach ((Node line, float phase) in _foam)
+        {
+            Vector3 p = line.Position;
+            line.Position = new Vector3(p.X, p.Y, 300.6f + (2.2f * MathF.Sin((_time * 0.7f) + phase)));
+        }
+
+        foreach ((Node gull, Vector2 center, float radius, float speed, float height, float phase) in _gulls)
+        {
+            float a = phase + (_time * speed);
+            Vector3 pos = new(center.X + (MathF.Cos(a) * radius), height + MathF.Sin(_time * 1.3f + phase), center.Y + (MathF.Sin(a) * radius));
+            gull.Position = pos;
+            gull.EulerAngles = new Vector3(0f, -a, 0.35f * MathF.Sin(_time * 2f + phase));
+        }
+
+        // Butterflies over the campsite meadow and the park by day.
+        if (!night)
+        {
+            Vector2 cam = new(cameraPosition.X, cameraPosition.Z);
+            foreach (Vector2 meadow in new[] { new Vector2(-24f, -232f), new Vector2(-36f, 48f) })
+            {
+                if (Vector2.Distance(cam, meadow) < 70f && ((int)(_time * 10f) % 9) == 0 && _butterflyTick != (int)(_time * 10f))
+                {
+                    _butterflyTick = (int)(_time * 10f);
+                    float ang = _time * 7.1f;
+                    float r = 3f + ((_time * 5.3f) % 18f);
+                    _effects.Butterfly(new Vector3(meadow.X + (MathF.Cos(ang) * r), 0.4f + ((_time * 1.7f) % 1.2f), meadow.Y + (MathF.Sin(ang) * r)));
+                }
+            }
+        }
+
+        // Fireflies drift around the campsite after dark.
+        Vector2 camp = new(-24f, -232f);
+        if (night && Vector2.Distance(new Vector2(cameraPosition.X, cameraPosition.Z), camp) < 90f)
+        {
+            _fireflyTimer -= dt;
+            if (_fireflyTimer <= 0f)
+            {
+                _fireflyTimer = 0.12f;
+                float ang = _time * 13.7f;
+                float r = 4f + ((_time * 7.3f) % 22f);
+                _effects.Firefly(new Vector3(camp.X + (MathF.Cos(ang) * r), 0.5f + ((_time * 3.1f) % 2f), camp.Y + (MathF.Sin(ang) * r)));
+            }
+        }
         _t.PoolWater.Update(o => o with { UvOffset = new Vector2(_time * 0.03f, _time * 0.02f) });
 
         // Only the street lamps nearest the camera get real lights.

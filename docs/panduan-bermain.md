@@ -123,6 +123,10 @@ Saat besok bukan hari sekolah, keluarga bisa **menginap** mulai pukul 17:00: di 
 Perkemahan (butuh tenda dari Mal) atau di **Penginapan Pantai** (Rp 350.000). Semua bangun pukul 07:00
 dengan segar, dan malam itu menjadi kenangan istimewa.
 
+Di **pantai**, berjalanlah ke air dangkal untuk bermain ombak (lebih jauh terlalu dalam), lihat perahu
+nelayan, menara penjaga pantai dan warung bambu. Di **bumi perkemahan** ada danau, jalan setapak ke
+perkemahan Pramuka, dan di malam hari kunang-kunang beterbangan di sekitar api unggun.
+
 ## Tetangga & teman
 
 Tetangga punya jadwal sendiri: Nenek Sari belanja ke supermarket di akhir pekan dan duduk di taman

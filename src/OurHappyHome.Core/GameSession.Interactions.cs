@@ -100,7 +100,7 @@ public sealed partial class GameSession
         foreach (Npc npc in Npcs)
         {
             float d = Vector2.Distance(npc.Position, p);
-            if (d <= InteractRange && npc.Present)
+            if (d <= InteractRange && npc.Present && !npc.Ambient)
             {
                 float friendship = State.Friendship(npc.Id);
                 string title = friendship >= 1f ? $"{npc.Name} · {FriendshipLabel(friendship)}" : npc.Name;

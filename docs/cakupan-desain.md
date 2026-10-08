@@ -49,4 +49,5 @@ Pemetaan dari setiap bagian `Our_Happy_Home_Game_Design.md` ke implementasinya.
 - **Cutaway dinding** gaya *doll house*, pintu yang membuka sendiri, kursor bangun dengan validasi.
 - **11 pencapaian**, rapor sekolah, buku kas keluarga, dan ramalan cuaca besok.
 - **Dua bahasa** (ID/EN), autosave, dan mode screenshot otomatis.
-- **50 test otomatis** untuk simulasi.
+- **Langit, pantai dan perkemahan yang hidup** dengan pengunjung, burung, kupu-kupu dan kunang-kunang (v1.3).
+- **52 test otomatis** untuk simulasi.

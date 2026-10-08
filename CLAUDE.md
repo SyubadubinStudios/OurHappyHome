@@ -54,6 +54,11 @@ dotnet run --project src/OurHappyHome -- --screenshots docs/images      # regene
 - ThreeNet 0.7 has no morph targets: faces use the `Jaw` bone (never keyed; `strip_channels` removes the
   exporter's sampled Jaw channels) driven by `Rendering/Jaw`. For Spine/Chest/Head, positive X rotation in
   `rig_character.py` bends forward/down.
+- No skybox in ThreeNet: `Rendering/SkyDome` is three `CullMode.None` spheres (gradient, clouds, stars) that follow
+  the camera; textures are mirrored about the horizon because the sphere's V direction is uncertain.
+- `OHH_SHOTS_ONLY=scenes dotnet run --project src/OurHappyHome -- --screenshots <dir>` renders only the beach and
+  campsite from four directions plus a sky shot (fast check for environment work).
+- When Rodin credits run out, model props in Blender with `tools/blender/model_props.py` (through Blender MCP).
 - `ScreenshotDirector.SkipTo` jumps the calendar without simulating; schedule minutes replay from
   `ScheduleCursor`, so set it just before the target minute.
 - Interiors (`WorldMap.Interiors`) are diorama rooms at x ≈ 245–290, z ≈ -290…-255, built from interior

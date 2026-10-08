@@ -24,14 +24,14 @@ installer/
 
 ```powershell
 # Windows (PowerShell). Linux & macOS ikut dibangun bila Git Bash / bash tersedia.
-powershell -ExecutionPolicy Bypass -File installer/build-all.ps1 -Version 1.2.0
+powershell -ExecutionPolicy Bypass -File installer/build-all.ps1 -Version 1.3.0
 powershell -ExecutionPolicy Bypass -File installer/build-all.ps1 -Platforms win
 ```
 
 ```bash
 # Linux / macOS / Git Bash
-bash installer/linux/build-linux.sh 1.2.0
-bash installer/macos/build-macos.sh 1.2.0
+bash installer/linux/build-linux.sh 1.3.0
+bash installer/macos/build-macos.sh 1.3.0
 ```
 
 | Paket | Isi | Ukuran ±|
@@ -59,7 +59,7 @@ Kebutuhan: Windows 10/11 64-bit dengan GPU DirectX 12.
 ### Linux
 
 ```bash
-tar -xzf OurHappyHome-1.2.0-linux-x64.tar.gz
+tar -xzf OurHappyHome-1.3.0-linux-x64.tar.gz
 cd OurHappyHome && ./install.sh          # ke ~/.local/share/OurHappyHome, perintah: ourhappyhome
 ~/.local/share/OurHappyHome/uninstall.sh  # copot (tambah --remove-saves untuk hapus simpanan)
 ```
@@ -75,7 +75,7 @@ Developer ID dan lakukan notarisasi:
 
 ```bash
 codesign --deep --force --options runtime --sign "Developer ID Application: ..." "Our Happy Home.app"
-xcrun notarytool submit OurHappyHome-1.2.0-macos-arm64.zip --apple-id ... --wait
+xcrun notarytool submit OurHappyHome-1.3.0-macos-arm64.zip --apple-id ... --wait
 ```
 
 Kebutuhan: macOS 12 atau lebih baru (Metal). Ada paket terpisah untuk Apple Silicon (`arm64`) dan
@@ -93,7 +93,7 @@ Intel (`x64`).
 
 | Workflow | Pemicu | Isi |
 |---|---|---|
-| `.github/workflows/ci.yml` | push ke `main`, pull request | build + 50 test di Windows, Ubuntu, macOS |
+| `.github/workflows/ci.yml` | push ke `main`, pull request | build + 52 test di Windows, Ubuntu, macOS |
 | `.github/workflows/release.yml` | push tag `v*` atau manual (*Run workflow* + versi) | test, lalu build installer di 3 OS → GitHub Release |
 
 Merilis versi baru:

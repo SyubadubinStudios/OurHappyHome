@@ -38,6 +38,9 @@ public sealed class Npc
     public float Height { get; init; } = 1.6f;
     public Vector2 Home { get; init; }
     public float WanderRadius { get; init; } = 3f;
+
+    /// <summary>Background visitors (tourists, scouts): they bring places to life but are not neighbours.</summary>
+    public bool Ambient { get; init; }
     public string[] LinesId { get; init; } = [];
     public string[] LinesEn { get; init; } = [];
 
@@ -135,6 +138,30 @@ public sealed class Npc
         }
     }
 
+    private static Npc Visitor(string id, string model, float height, Vector2 spot, float radius, float from, float to) => new()
+    {
+        Id = id, NameId = "", NameEn = "", Model = model, Height = height, Home = spot, WanderRadius = radius, Ambient = true,
+        LinesId = ["Halo!"], LinesEn = ["Hello!"],
+        Schedule = [new(from, to, spot, radius, Tag: "visitor")],
+    };
+
+    /// <summary>Tourists at the beach, scouts and a hiker at the campsite.</summary>
+    private static IEnumerable<Npc> CreateVisitors() =>
+    [
+        Visitor("tourist1", "tourist-man", 1.72f, new Vector2(28f, 284f), 7f, 8f, 17.5f),
+        Visitor("tourist2", "tourist-woman", 1.62f, new Vector2(64f, 278f), 6f, 8.5f, 18f),
+        Visitor("tourist3", "tourist-kid", 1.15f, new Vector2(38f, 302.5f), 4f, 9f, 17f),
+        Visitor("tourist4", "tourist-woman", 1.6f, new Vector2(-30f, 280f), 5f, 9f, 16.5f),
+        Visitor("tourist5", "tourist-kid", 1.1f, new Vector2(118f, 288f), 5f, 9f, 17f),
+        Visitor("tourist6", "tourist-man", 1.7f, new Vector2(115f, 302f), 3f, 10f, 16f),
+        Visitor("scout1", "scout", 1.4f, ScoutSpot + new Vector2(-1.5f, 2f), 3f, 6f, 22f),
+        Visitor("scout2", "scout-girl", 1.38f, ScoutSpot + new Vector2(2f, 3f), 3f, 6f, 22f),
+        Visitor("scout3", "scout", 1.36f, ScoutSpot + new Vector2(0f, -1f), 4f, 7f, 21f),
+        Visitor("hiker", "hiker", 1.74f, new Vector2(-48f, -246f), 6f, 8f, 18f),
+    ];
+
+    private static readonly Vector2 ScoutSpot = new(9f, -241f);
+
     /// <summary>An aisle of the supermarket interior.</summary>
     private static readonly Vector2 Supermarket = new(276f, -281.8f);
 
@@ -202,6 +229,7 @@ public sealed class Npc
             },
         ];
 
+        npcs.AddRange(CreateVisitors());
         foreach (Npc npc in npcs)
         {
             npc.Position = npc.Home;

@@ -57,7 +57,21 @@ berganti otomatis per musim.
 Dipindah ke v1.3: rumah dua lantai (tangga, loteng, balkon), sinkronisasi bibir dari suara
 sungguhan, ekspresi wajah dengan morph target saat ThreeNet mendukungnya.
 
-## Fase 3b — Rumah bertingkat (v1.3)
+## Fase 3b — Lingkungan yang hidup & langit ✅ (v1.3)
+
+- Langit: kubah langit dengan gradasi sesuai jam, awan yang bergerak dan berubah warna (senja, malam,
+  mendung), bintang di malam hari; kabut lebih tipis dan kamera lebih rendah saat bepergian
+- Pantai: laut biru dengan riak, pasir basah, air dangkal untuk berjalan, buih ombak yang bergerak,
+  pohon kelapa (Rodin), warung bambu (Rodin), menara penjaga pantai, kursi & payung, perahu jukung,
+  handuk, istana pasir, bola pantai, papan selancar, net voli, burung camar terbang dan bersuara
+- Bumi perkemahan: hutan pinus lebat (Rodin), danau, jalan setapak, tenda kubah, bangku kayu di sekitar
+  api unggun, perkemahan Pramuka dengan api unggunnya sendiri, tiang bendera, batu dan bunga, kupu-kupu
+  di siang hari dan kunang-kunang di malam hari
+- Pengunjung: turis di pantai (termasuk yang berenang), anggota Pramuka dan pendaki di perkemahan
+- Model tambahan dibuat langsung di Blender lewat Blender MCP saat kredit Rodin habis
+  (`tools/blender/model_props.py`)
+
+## Fase 3c — Rumah bertingkat (v1.4)
 
 - Rumah dua lantai dengan tangga, loteng dan balkon
 - Ekspresi wajah dengan morph target dan sinkronisasi bibir dari amplitudo suara

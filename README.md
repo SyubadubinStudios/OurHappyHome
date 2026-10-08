@@ -29,6 +29,8 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 | ![Ruang kelas](docs/images/24-interior-classroom.png) | ![Kostum](docs/images/27-family-costumes.png) |
 | **Baru v1.2: festival kota** | **Baru v1.2: tarik tambang** |
 | ![Festival](docs/images/31-festival-park.png) | ![Tarik tambang](docs/images/33-tug-of-war.png) |
+| **Baru v1.3: pantai yang hidup** | **Baru v1.3: perkemahan & langit** |
+| ![Pantai](docs/images/36-beach-life.png) | ![Perkemahan](docs/images/37-camp-scouts.png) |
 
 ---
 
@@ -70,6 +72,8 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 - **Tetangga dengan jadwal dan persahabatan**, termasuk teman sekelas yang datang mengajak main.
 - **Naik mobil bersama Ayah atau angkot**, dan **liburan menginap** di tenda atau penginapan pantai.
 - **Bahasa tubuh**: karakter melompat kecil saat senang, menunduk saat sedih, dan mulutnya bergerak saat bicara.
+- **Langit dengan awan dan bintang**, pantai dengan ombak, perahu, turis dan burung camar, serta perkemahan
+  dengan hutan pinus, danau, Pramuka, kupu-kupu dan kunang-kunang.
 - **5 bab cerita** (Rumah Kecil Kita sampai Petualangan Besar), lalu mode bebas, ditambah 11 pencapaian.
 - **Efek visual**: bayangan, bloom, SSAO, partikel (hujan, asap, api, uap, hati, konfeti, kembang api),
   kilat, dinding yang turun otomatis saat di dalam rumah, dan pintu yang membuka sendiri.
@@ -132,6 +136,8 @@ make sure **nobody gets left behind** when emergencies strike.
 - **Seasons, national holidays and school breaks**, a monthly **town festival** (cracker eating contest,
   tug of war, fireworks), **neighbour schedules and friendships**, **car and angkot travel**, **overnight
   trips**, and mood-driven **body language** with talking mouths.
+- A **sky dome** with drifting clouds and stars, a lively **beach** (waves, boats, tourists, seagulls) and
+  **campsite** (pine forest, lake, scouts, butterflies and fireflies).
 - **Cozy and Adventure modes**, an explorable **town**, a **family album** of auto-captured photos with frames and stickers,
   **5 chapters** plus a sandbox, and **11 achievements**.
 - **Effects, procedural music, sound effects and voices**, all of the **accessibility options** from the

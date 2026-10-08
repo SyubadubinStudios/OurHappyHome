@@ -99,6 +99,19 @@ ns["process"](r"art/raw/dog-standing.glb", r"art/rigged/dog.glb", 0.62)
 
 ![](images/rig-pets-poses.png)
 
+### Model buatan Blender (v1.3)
+
+Saat kredit Rodin habis, `tools/blender/model_props.py` membangun model langsung di Blender lewat Blender MCP
+dari bentuk dasar dengan warna PBR polos: perahu jukung, menara penjaga pantai, kursi & payung pantai, tenda
+kubah, bangku kayu, batu, tiang bendera, dan enam pengunjung (turis, Pramuka, pendaki) dalam T-pose yang lalu
+di-rig dengan `rig_character.py`.
+
+```python
+ns = {"__file__": r".../tools/blender/model_props.py"}
+exec(open(ns["__file__"]).read(), ns)
+ns["build_all"](r".../art/blender")
+```
+
 `preview_poses.py` merender beberapa aksi sekaligus untuk pemeriksaan cepat:
 `blender -b --python tools/blender/preview_poses.py -- art/rigged/dog.glb out/d 1.0 Idle:1 Walk:7 Sit:1`.
 

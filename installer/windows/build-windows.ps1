@@ -3,7 +3,7 @@
     artifacts/OurHappyHome-<version>-win-x64-portable.zip   (unzip & run, or run install.cmd)
     artifacts/OurHappyHome-<version>-win-x64-setup.exe       (when Inno Setup 6 is installed)
 #>
-param([string]$Version = "1.2.0")
+param([string]$Version = "1.3.0")
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = (Resolve-Path "$here/../..").Path

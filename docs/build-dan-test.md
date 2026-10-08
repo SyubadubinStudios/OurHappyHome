@@ -12,7 +12,7 @@
 ```bash
 dotnet build OurHappyHome.slnx                       # build semua
 dotnet run --project src/OurHappyHome                # main
-dotnet test                                          # 50 test simulasi (±12 detik)
+dotnet test                                          # 52 test simulasi (±13 detik)
 dotnet run --project src/OurHappyHome -- --screenshots docs/images   # ambil ulang semua screenshot
 dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket rilis
 ```

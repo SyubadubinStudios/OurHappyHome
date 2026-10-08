@@ -27,6 +27,8 @@ namespace OurHappyHome.Views;
 /// </summary>
 public sealed partial class GameScreen : UserControl, IKeyHandler
 {
+    private Random? _gullRandom;
+
     private readonly MainWindow _window;
     private readonly ThreeNetView _view = new() { Focusable = true };
     private readonly Grid _root = new();
@@ -347,6 +349,7 @@ public sealed partial class GameScreen : UserControl, IKeyHandler
 
         WeatherState weather = Session.State.Weather;
         FamilyMember player = Session.Controlled;
+        _gullRandom ??= new Random(3);
         bool indoors = Session.IsIndoors(player.Position);
         bool night = Session.Clock.IsNight;
         PlaceId? place = Session.Map.PlaceAt(player.Position);
@@ -360,6 +363,11 @@ public sealed partial class GameScreen : UserControl, IKeyHandler
         Audio.SetAmbience("fire", fireNear ? 0.6f : 0f);
         Audio.SetAmbience("ocean", place == PlaceId.Beach || player.Position.Y > 215f ? 0.8f : 0f);
         Audio.SetAmbience("town", place is PlaceId.Supermarket or PlaceId.Mall or PlaceId.Restaurant or PlaceId.Arcade or PlaceId.School or PlaceId.ThemePark ? 0.35f : 0f);
+        if (place == PlaceId.Beach && !night && !weather.IsRaining && _gullRandom.NextDouble() < dt * 0.12)
+        {
+            // Now and then a seagull calls overhead.
+            Audio.Play("gull", gain: 0.25f + ((float)_gullRandom.NextDouble() * 0.2f), pitch: 0.9f + ((float)_gullRandom.NextDouble() * 0.25f));
+        }
 
         MusicMood mood;
         if (Session.ScenarioFailed)

@@ -66,6 +66,15 @@ public enum FeatureKind
 
     /// <summary>The beach inn where the family can stay the night.</summary>
     Inn,
+
+    /// <summary>A model placed as scenery: <see cref="TownFeature.Label"/> is the model name, Height its height.</summary>
+    Prop,
+
+    /// <summary>Wet sand, shallow water and moving foam along the beach.</summary>
+    Shore,
+
+    /// <summary>Flat ground decoration you can walk over: beach towels, dirt trails.</summary>
+    Decal,
 }
 
 /// <summary>
@@ -74,16 +83,22 @@ public enum FeatureKind
 /// </summary>
 public sealed record TownFeature(FeatureKind Kind, Rect Area, float Height, string Color, float Yaw = 0f, string Label = "")
 {
+    /// <summary>How far into the sea people can paddle before it is too deep.</summary>
+    public const float WadeDepthMetres = 6f;
+
     public bool Solid => Kind is FeatureKind.House or FeatureKind.School or FeatureKind.Shop or FeatureKind.Tree or FeatureKind.PineTree
         or FeatureKind.Fence or FeatureKind.Pond or FeatureKind.Ocean or FeatureKind.Rock or FeatureKind.Tent or FeatureKind.FerrisWheel
         or FeatureKind.Carousel or FeatureKind.Mountain or FeatureKind.ParkedCar or FeatureKind.LampPost or FeatureKind.Bush
         or FeatureKind.Campfire or FeatureKind.Playground or FeatureKind.InteriorWall or FeatureKind.Door or FeatureKind.Shelf
-        or FeatureKind.Counter or FeatureKind.Desk or FeatureKind.Board or FeatureKind.ClinicBed or FeatureKind.Plant or FeatureKind.Inn;
+        or FeatureKind.Counter or FeatureKind.Desk or FeatureKind.Board or FeatureKind.ClinicBed or FeatureKind.Plant or FeatureKind.Inn or FeatureKind.Prop;
 
     /// <summary>Trees and posts only block near their trunk.</summary>
     public Rect CollisionArea => Kind switch
     {
         FeatureKind.Tree or FeatureKind.PineTree => Rect.FromCenter(Area.Center, new Vector2(0.7f, 0.7f)),
+        // The first metres of the sea are shallow enough to paddle in.
+        FeatureKind.Ocean => new Rect(Area.X0, Area.Z0 + WadeDepthMetres, Area.X1, Area.Z1),
+        FeatureKind.Prop => Rect.FromCenter(Area.Center, Area.Size * 0.8f),
         FeatureKind.LampPost => Rect.FromCenter(Area.Center, new Vector2(0.3f, 0.3f)),
         FeatureKind.Campfire => Rect.FromCenter(Area.Center, new Vector2(1.0f, 1.0f)),
         _ => Area,
@@ -190,17 +205,16 @@ public sealed class WorldMap
         Places.Add(new(PlaceId.Restaurant, new Rect(76f, 140f, 100f, 162f), new Vector2(88f, 137f), 0f));
         Places.Add(new(PlaceId.Arcade, new Rect(108f, 140f, 128f, 160f), new Vector2(118f, 137f), 0f));
         Places.Add(new(PlaceId.ThemePark, new Rect(150f, 90f, 236f, 176f), new Vector2(146f, 132f), MathF.PI / 2f));
-        Places.Add(new(PlaceId.Beach, new Rect(-70f, 228f, 170f, 300f), new Vector2(40f, 278f), 0f));
+        Places.Add(new(PlaceId.Beach, new Rect(-70f, 228f, 170f, 300f), new Vector2(38f, 285f), 0f));
         Places.Add(new(PlaceId.Forest, new Rect(-270f, -90f, -110f, 90f), new Vector2(-104f, 20f), -MathF.PI / 2f));
-        Places.Add(new(PlaceId.Camping, new Rect(-80f, -280f, 30f, -190f), new Vector2(-25f, -185f), MathF.PI));
+        Places.Add(new(PlaceId.Camping, new Rect(-80f, -280f, 30f, -190f), new Vector2(-24f, -212f), MathF.PI));
 
         // ---- roads: main street in front of the house, then spurs to each district.
         Road(-260f, 17f, 230f, 23f);           // main street (z = 20)
-        Road(-28f, -200f, -22f, 17f);          // north road to the mountain
+        Road(-28f, -192f, -22f, 17f);          // north road to the mountain (ends at the camp ground)
         Road(57f, 23f, 63f, 200f);             // south road downtown and to the beach
         Road(20f, 128f, 146f, 134f);           // downtown boulevard
         Road(63f, 196f, 69f, 226f);
-        Road(-28f, -206f, 20f, -200f);         // camp loop
         Add(FeatureKind.Sidewalk, new Rect(-260f, 15.2f, 230f, 17f), 0.06f, "#C9C3B8");
         Add(FeatureKind.Sidewalk, new Rect(-260f, 23f, 230f, 24.8f), 0.06f, "#C9C3B8");
 
@@ -301,19 +315,11 @@ public sealed class WorldMap
         Add(FeatureKind.Sign, Rect.FromCenter(new Vector2(152f, 132f), new Vector2(0.3f, 6f)), 4f, "#EF476F", MathF.PI / 2f, Loc.T("Taman Bermain", "Theme Park"));
 
         // ---- beach
-        Add(FeatureKind.Sand, new Rect(-80f, 226f, 180f, 305f), 0.02f, "#F2DDA4");
+        Add(FeatureKind.Sand, new Rect(-80f, 226f, 180f, 300.5f), 0.02f, "#F2DDA4");
         Add(FeatureKind.Ocean, new Rect(-300f, 300f, 300f, 340f), 0.0f, "#2A9DD8");
+        Add(FeatureKind.Shore, new Rect(-300f, 293f, 300f, 300f + TownFeature.WadeDepthMetres), 0.0f, "#E3C98F");
         Add(FeatureKind.Pier, new Rect(80f, 280f, 84f, 320f), 0.6f, "#A57A52");
-        for (int i = 0; i < 8; i++)
-        {
-            Add(FeatureKind.Umbrella, Rect.FromCenter(new Vector2(-40f + (i * 22f), 262f + ((i % 2) * 8f)), new Vector2(2.6f, 2.6f)), 2.4f,
-                i % 2 == 0 ? "#E63946" : "#2A9D8F");
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            Add(FeatureKind.Tree, Rect.FromCenter(new Vector2(-70f + (i * 25f), 232f), new Vector2(3f, 3f)), 7f, "#3FA34D", 0f, "palm");
-        }
+        BuildBeach(new GameRandom(41));
 
         Add(FeatureKind.Inn, Rect.FromCenter(new Vector2(18f, 247f), new Vector2(11f, 7f)), 3.4f, "#F4E3C3", MathF.PI, Loc.T("Penginapan Pantai", "Beach Inn"));
 
@@ -348,7 +354,7 @@ public sealed class WorldMap
         for (int i = 0; i < 40; i++)
         {
             Vector2 p = new(random.Range(-78f, 28f), random.Range(-278f, -192f));
-            if (Vector2.Distance(p, new Vector2(-24f, -232f)) < 18f || MathF.Abs(p.X + 25f) < 4f)
+            if (Vector2.Distance(p, new Vector2(-24f, -232f)) < 18f || MathF.Abs(p.X + 25f) < 4f || CampClearing(p))
             {
                 continue;
             }
@@ -356,8 +362,153 @@ public sealed class WorldMap
             Add(FeatureKind.PineTree, Rect.FromCenter(p, new Vector2(4f, 4f)), random.Range(7f, 12f), "#2F6B3A");
         }
 
+        BuildCamp(new GameRandom(31));
+
         BuildFestival();
         BuildInteriors();
+    }
+
+    // ------------------------------------------------------- beach & camp
+
+    private void Prop(string model, Vector2 at, Vector2 footprint, float height, float yaw = 0f) =>
+        Add(FeatureKind.Prop, Rect.FromCenter(at, footprint), height, "#888888", yaw, model);
+
+    /// <summary>Palms, warungs, a lifeguard tower, deck chairs, boats and rocks along the sea.</summary>
+    private void BuildBeach(GameRandom random)
+    {
+        Vector2[] warungs = [new(-20f, 252f), new(62f, 252f), new(126f, 252f)];
+        foreach (Vector2 w in warungs)
+        {
+            Prop("beach-warung", w, new Vector2(5f, 4f), 3.8f);
+        }
+
+        // Two loose rows of palms behind the sand, keeping clear of buildings.
+        foreach ((float z, float step) in new[] { (231f, 11f), (241f, 17f) })
+        {
+            for (float x = -76f; x < 176f; x += step)
+            {
+                Vector2 p = new(x + random.Range(-3f, 3f), z + random.Range(-2.5f, 2.5f));
+                if (Vector2.Distance(p, new Vector2(18f, 247f)) < 9f || warungs.Any(w => Vector2.Distance(p, w) < 6f))
+                {
+                    continue;
+                }
+
+                Add(FeatureKind.Tree, Rect.FromCenter(p, new Vector2(3f, 3f)), random.Range(6.5f, 9f), "#3FA34D", random.Range(0f, MathF.Tau), "palm");
+            }
+        }
+
+        Prop("lifeguard-tower", new Vector2(45f, 289f), new Vector2(2.4f, 2.4f), 5f);
+
+        // Family beach life close to where the family arrives.
+        string[] towels = ["#E63946", "#2A9D8F", "#F4A261", "#9B5DE5", "#FFD23F", "#4A90D9"];
+        for (int i = 0; i < 10; i++)
+        {
+            Vector2 p = new(-40f + (i * 20f) + random.Range(-4f, 4f), 276f + random.Range(0f, 14f));
+            if (Vector2.Distance(p, new Vector2(38f, 285f)) > 3f && Vector2.Distance(p, new Vector2(45f, 289f)) > 3.5f && MathF.Abs(p.X - 82f) > 3f)
+            {
+                Add(FeatureKind.Decal, Rect.FromCenter(p, new Vector2(1f, 1.9f)), 0.03f, towels[i % towels.Length], random.Range(-0.5f, 0.5f), "towel");
+            }
+        }
+
+        Prop("sandcastle", new Vector2(30f, 292f), new Vector2(1.6f, 1.6f), 0.9f);
+        Prop("sandcastle", new Vector2(96f, 291f), new Vector2(1.4f, 1.4f), 0.7f, 0.6f);
+        Prop("beach-ball", new Vector2(33f, 289.5f), new Vector2(0.5f, 0.5f), 0.45f);
+        Prop("beach-ball", new Vector2(70f, 284f), new Vector2(0.5f, 0.5f), 0.45f);
+        Prop("volleyball", new Vector2(92f, 274f), new Vector2(8f, 0.6f), 2.4f);
+        foreach ((float x, float yaw) in new[] { (55f, 0.1f), (57.2f, -0.12f), (59.3f, 0.05f) })
+        {
+            Prop("surfboard", new Vector2(x, 256.5f), new Vector2(0.7f, 0.3f), 2.2f, yaw);
+        }
+        for (int i = 0; i < 12; i++)
+        {
+            Vector2 p = new(-58f + (i * 19f) + random.Range(-3f, 3f), 268f + random.Range(0f, 18f));
+            if (MathF.Abs(p.X - 82f) < 4f || Vector2.Distance(p, new Vector2(45f, 289f)) < 5f)
+            {
+                continue;
+            }
+
+            Prop("deck-chair", p, new Vector2(2f, 2f), 2.6f, random.Range(-0.4f, 0.4f));
+        }
+
+        // Fishing boats pulled up on the sand, and two out at sea.
+        Prop("boat", new Vector2(-36f, 295f), new Vector2(2f, 5f), 1.6f, 0.35f);
+        Prop("boat", new Vector2(108f, 294.5f), new Vector2(2f, 5f), 1.6f, -0.25f);
+        Prop("boat", new Vector2(152f, 295.5f), new Vector2(2f, 5f), 1.6f, 0.1f);
+        Prop("boat", new Vector2(20f, 318f), new Vector2(2f, 5f), 1.6f, 1.2f);
+        Prop("boat", new Vector2(135f, 326f), new Vector2(2f, 5f), 1.6f, -0.9f);
+
+        foreach ((float x, float z, float s) in new[] { (-77f, 288f, 2.4f), (-70f, 299f, 1.8f), (175f, 285f, 2.6f), (168f, 298f, 1.6f), (-5f, 236f, 1.4f) })
+        {
+            Prop("rocks", new Vector2(x, z), new Vector2(s * 1.6f, s * 1.3f), s * 0.7f, x);
+        }
+    }
+
+    /// <summary>The camp lake, the scouts' camp and the flag pole stay free of trees.</summary>
+    private static bool CampClearing(Vector2 p) =>
+        Rect.FromCenter(CampLake, new Vector2(30f, 22f)).Contains(p)
+        || Vector2.Distance(p, ScoutCamp) < 13f
+        || Vector2.Distance(p, new Vector2(-16f, -207f)) < 4f
+        || Rect.FromCenter(new Vector2(-24f, -205f), new Vector2(18f, 26f)).Contains(p); // arrival point and camera
+
+    public static readonly Vector2 CampLake = new(-58f, -256f);
+
+    public static readonly Vector2 ScoutCamp = new(9f, -245f);
+
+    private void Trail(Vector2 from, Vector2 to, float width = 1.6f)
+    {
+        Vector2 d = to - from;
+        Add(FeatureKind.Decal, Rect.FromCenter((from + to) / 2f, new Vector2(width, d.Length())), 0.02f, "#8B6B45", MathF.Atan2(d.X, d.Y), "trail");
+    }
+
+    /// <summary>A lake, the scouts' tents and fire, log benches, rocks, flowers and a thick ring of pines.</summary>
+    private void BuildCamp(GameRandom random)
+    {
+        // Dirt trails from the road end to the campfire, the lake and the scouts.
+        Trail(new Vector2(-25f, -192f), new Vector2(-24f, -222f), 2.2f);
+        Trail(new Vector2(-27f, -229f), new Vector2(-48f, -250f));
+        Trail(new Vector2(-21f, -228f), ScoutCamp + new Vector2(-4f, 4f));
+        Add(FeatureKind.Pond, Rect.FromCenter(CampLake, new Vector2(24f, 15f)), 0.05f, "#4DA6D9");
+        Prop("log-bench", new Vector2(-46f, -246f), new Vector2(1.9f, 0.5f), 0.7f, 0.3f);
+
+        // Benches around the family campfire.
+        Prop("log-bench", new Vector2(-24f, -223.2f), new Vector2(1.9f, 0.5f), 0.7f);
+        Prop("log-bench", new Vector2(-26.9f, -226.6f), new Vector2(0.5f, 1.9f), 0.7f, MathF.PI / 2f);
+        Prop("log-bench", new Vector2(-21.1f, -226.6f), new Vector2(0.5f, 1.9f), 0.7f, MathF.PI / 2f);
+
+        // The scouts' camp (Pramuka) with their own fire.
+        Add(FeatureKind.Campfire, Rect.FromCenter(ScoutCamp + new Vector2(0f, 4f), new Vector2(1.6f, 1.6f)), 0.5f, "#C94C2C");
+        Prop("dome-tent-green", ScoutCamp + new Vector2(-5f, -3f), new Vector2(2.6f, 3.2f), 2.2f, 0.4f);
+        Prop("dome-tent-blue", ScoutCamp + new Vector2(1f, -6f), new Vector2(2.6f, 3.2f), 2.2f, 0.05f);
+        Prop("dome-tent-green", ScoutCamp + new Vector2(6.5f, -3f), new Vector2(2.6f, 3.2f), 2.2f, -0.4f);
+        Prop("log-bench", ScoutCamp + new Vector2(0f, 6.8f), new Vector2(1.9f, 0.5f), 0.7f);
+        Prop("flag-pole", new Vector2(-16f, -207f), new Vector2(0.8f, 0.8f), 5.2f, 0.6f);
+
+        foreach ((float x, float z, float s) in new[] { (-72f, -244f, 2f), (-44f, -266f, 1.6f), (-66f, -268f, 1.4f), (22f, -268f, 2.2f), (-6f, -198f, 1.2f), (24f, -215f, 1.8f) })
+        {
+            Prop("rocks", new Vector2(x, z), new Vector2(s * 1.6f, s * 1.3f), s * 0.7f, z);
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            Vector2 p = new(random.Range(-70f, 20f), random.Range(-275f, -200f));
+            if (Vector2.Distance(p, new Vector2(-24f, -230f)) > 10f && !CampClearing(p) && MathF.Abs(p.X + 25f) > 4f)
+            {
+                Add(FeatureKind.Flowerbed, Rect.FromCenter(p, new Vector2(1.6f, 1f)), 0.25f, i % 2 == 0 ? "#FFFFFF" : "#F7D046");
+            }
+        }
+
+        // A dense forest ring around the camp ground (clear of the road and entrance).
+        Rect field = new(-76f, -276f, 26f, -194f);
+        for (int i = 0; i < 160; i++)
+        {
+            Vector2 p = new(random.Range(-115f, 65f), random.Range(-305f, -168f));
+            if (field.Contains(p) || CampClearing(p) || (MathF.Abs(p.X + 25f) < 5f && p.Y > -215f) || (p.Y > -210f && p.Y < -196f && p.X > -30f && p.X < 24f))
+            {
+                continue;
+            }
+
+            Add(FeatureKind.PineTree, Rect.FromCenter(p, new Vector2(4.5f, 4.5f)), random.Range(8f, 14f), "#2F6B3A");
+        }
     }
 
     /// <summary>Where the festival fireworks go up.</summary>

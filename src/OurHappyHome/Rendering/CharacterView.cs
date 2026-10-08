@@ -264,6 +264,11 @@ public sealed class CharacterView
             modelOffset = new Vector3(0f, -rig.Height * 0.55f, 0f);
         }
 
+        if (m.Anchor is null)
+        {
+            position.Y -= WadeDepth(m.Position);
+        }
+
         rig.Root.SetTransform(position, rotation, Vector3.One);
         rig.Model.SetTransform(Vector3.Transform(modelOffset, Quaternion.Identity), modelRotation, Vector3.One);
 
@@ -419,6 +424,10 @@ public sealed class CharacterView
         return hat;
     }
 
+    /// <summary>How deep someone stands in the sea at the beach (they sink in as they paddle out).</summary>
+    private static float WadeDepth(Vector2 p) =>
+        p.Y > 300f && p.X is > -80f and < 180f ? MathF.Min((p.Y - 300f) * 0.12f, 0.6f) : 0f;
+
     /// <summary>World position of a member's head, for UI anchoring.</summary>
     public Vector3 HeadPosition(FamilyMember m) => new(m.Position.X, (m.Anchor?.Y ?? 0f) + _rigs[m.Id].Height, m.Position.Y);
 
@@ -503,7 +512,7 @@ public sealed class CharacterView
             visual.Node.Visible = present;
             if (present)
             {
-                visual.Node.SetTransform(new Vector3(npc.Position.X, 0f, npc.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, npc.Yaw), Vector3.One);
+                visual.Node.SetTransform(new Vector3(npc.Position.X, -WadeDepth(npc.Position), npc.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, npc.Yaw), Vector3.One);
                 visual.Body?.Animate(npc.Moving, false, _time);
                 if (visual.Figure is { } figure)
                 {

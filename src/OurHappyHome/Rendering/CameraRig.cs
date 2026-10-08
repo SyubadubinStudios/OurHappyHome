@@ -37,6 +37,9 @@ public sealed class CameraRig
     /// <summary>Extra pitch from the player (mouse drag), added to the mode default.</summary>
     public float PitchOffset { get; set; }
 
+    /// <summary>On trips away from home: a lower camera that shows the horizon and the sky.</summary>
+    public bool Scenic { get; set; }
+
     /// <summary>Zoom multiplier from the mouse wheel.</summary>
     public float Zoom { get; set; } = 1f;
 
@@ -76,8 +79,8 @@ public sealed class CameraRig
                 Yaw += dt * 0.08f;
                 break;
             default:
-                basePitch = indoors ? 0.95f : 0.48f;
-                baseDistance = indoors ? 12.5f : 9f;
+                basePitch = indoors ? 0.95f : Scenic ? 0.32f : 0.48f;
+                baseDistance = indoors ? 12.5f : Scenic ? 10.5f : 9f;
                 aim = focus + new Vector3(0f, 1.0f, 0f);
                 break;
         }

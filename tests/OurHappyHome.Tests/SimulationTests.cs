@@ -570,4 +570,47 @@ public class SimulationTests
         Assert.Equal("rain-hat", dinda.Accessory);
         Assert.Equal("crown", nara.Accessory);
     }
+
+    // ------------------------------------------------------------------ v1.3
+
+    [Fact]
+    public void BeachAndCampsiteAreFullOfLife()
+    {
+        GameSession s = NewSession();
+        Place beach = s.Map.Get(PlaceId.Beach);
+        Place camp = s.Map.Get(PlaceId.Camping);
+        Rect beachArea = new(-80f, 226f, 180f, 340f);
+        Rect campArea = new(-115f, -305f, 65f, -168f);
+        Assert.True(s.Map.Features.Count(f => f.Kind is FeatureKind.Prop or FeatureKind.Tree or FeatureKind.Decal && beachArea.Contains(f.Area.Center)) >= 40);
+        Assert.True(s.Map.Features.Count(f => f.Kind == FeatureKind.PineTree && campArea.Contains(f.Area.Center)) >= 100);
+        Assert.Contains(s.Map.Features, f => f.Kind == FeatureKind.Pond && campArea.Contains(f.Area.Center));
+
+        // Arrival points are free, with no tree right behind the camera.
+        foreach (Place place in new[] { beach, camp })
+        {
+            Assert.False(s.Collision.Blocked(place.Entrance, GameSession.CharacterRadius));
+        }
+
+        Assert.DoesNotContain(s.Map.Features, f => f.Kind == FeatureKind.PineTree && Vector2.Distance(f.Area.Center, camp.Entrance) < 7f);
+
+        // People can paddle in the shallows but not swim out to sea.
+        Assert.False(s.Collision.Blocked(new Vector2(40f, 303f), GameSession.CharacterRadius));
+        Assert.True(s.Collision.Blocked(new Vector2(40f, 312f), GameSession.CharacterRadius));
+    }
+
+    [Fact]
+    public void VisitorsFillTheBeachButAreNotNeighbours()
+    {
+        GameSession s = NewSession();
+        SetTime(s, 1, 8, 11f);
+        s.Travel(PlaceId.Beach, false);
+        List<Npc> tourists = [.. s.Npcs.Where(n => n.Ambient && n.Present && n.Position.Y > 226f)];
+        Assert.True(tourists.Count >= 4);
+        s.Controlled.Position = tourists[0].Position + new Vector2(0.8f, 0f);
+        Assert.DoesNotContain(s.GetInteractions(), t => t.Key == $"npc:{tourists[0].Id}");
+
+        SetTime(s, 1, 8, 21f);
+        Assert.Contains(s.Npcs, n => n.Ambient && n.Present && n.Model.StartsWith("scout", StringComparison.Ordinal));
+        Assert.DoesNotContain(s.Npcs, n => n.Ambient && n.Present && n.Model.StartsWith("tourist", StringComparison.Ordinal));
+    }
 }

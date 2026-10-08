@@ -33,6 +33,7 @@ public sealed class GameRenderer : IDisposable
         Town = new TownView(Scene, Meshes, Textures, Models, Effects, session.Map);
         House = new HouseView(Scene, Meshes, Textures, Models, Effects);
         Characters = new CharacterView(Scene, Meshes, Textures, Models);
+        Sky = new SkyDome(Scene, Textures);
 
         _sun = Scene.AddLight(Light.Directional(Vector3.One, 3f) with { CastShadow = true, ShadowNormalBias = 1.6f }, name: "sun");
         _fill = Scene.AddLight(Light.Directional(new Vector3(0.5f, 0.6f, 0.8f), 0.4f), name: "sky-fill");
@@ -58,6 +59,14 @@ public sealed class GameRenderer : IDisposable
     public HouseView House { get; }
 
     public CharacterView Characters { get; }
+
+    public SkyDome Sky { get; }
+
+    private Vector3 _skyColour = new(0.45f, 0.68f, 0.95f);
+    private Vector3 _cloudTint = Vector3.One;
+    private float _cloudOpacity = 0.6f;
+    private float _windSpeed;
+    private float _starOpacity;
 
     public Node CameraNode { get; }
 
@@ -89,9 +98,11 @@ public sealed class GameRenderer : IDisposable
         FamilyMember player = s.Controlled;
         bool indoors = s.IsIndoors(player.Position);
         Vector3 focus = new(player.Position.X, player.Anchor?.Y ?? 0f, player.Position.Y);
+        Rig.Scenic = !indoors && !Rooms.Lot.Inflate(4f).Contains(player.Position);
         Rig.Update(dt, focus, indoors);
 
         ApplyTimeAndWeather(dt);
+        Sky.Update(dt, CameraNode.Position, _skyColour, _cloudTint, _cloudOpacity, _windSpeed, _starOpacity);
         Quaternion cameraRotation = CameraNode.Rotation;
         House.Sync(s, CameraNode.Position, dt);
         House.FaceIcons(cameraRotation);
@@ -176,7 +187,15 @@ public sealed class GameRenderer : IDisposable
             ambientIntensity += _flash * 1.5f;
         }
 
-        float fog = 0.0025f + (clouds * 0.004f) + (weather.Current == WeatherKind.Fog ? weather.Intensity * 0.035f : 0f) + (weather.IsRaining ? 0.006f : 0f);
+        // Light haze on clear days so the sky dome and its clouds stay visible; heavier in bad weather.
+        float fog = 0.0008f + (clouds * 0.0022f) + (weather.Current == WeatherKind.Fog ? weather.Intensity * 0.035f : 0f) + (weather.IsRaining ? 0.004f : 0f);
+        _skyColour = sky;
+        Vector3 dayClouds = Vector3.Lerp(Vector3.One, new Vector3(0.62f, 0.64f, 0.68f), clouds);
+        Vector3 nightClouds = new(0.12f, 0.13f, 0.2f);
+        _cloudTint = Vector3.Lerp(Vector3.Lerp(nightClouds, dayClouds, daylight), new Vector3(1f, 0.72f, 0.6f), golden * 0.7f * (1f - clouds));
+        _cloudOpacity = 0.7f + (clouds * 0.3f);
+        _starOpacity = (1f - daylight) * (1f - clouds);
+        _windSpeed = weather.Current is WeatherKind.Windy or WeatherKind.SevereStorm ? 1f : 0.15f;
         Scene.Environment = Scene.Environment with
         {
             Background = new Vector4(sky, 1f),

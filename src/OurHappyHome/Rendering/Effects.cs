@@ -178,6 +178,29 @@ public sealed class Effects
         }
     }
 
+    /// <summary>A small glowing firefly that drifts and fades.</summary>
+    public void Firefly(Vector3 at)
+    {
+        _firefly ??= _textures.Blob("firefly", Color.FromArgb(255, 220, 255, 120), 0.5f);
+        Emit(_firefly, at, new Vector3(Rand(-0.3f, 0.3f), Rand(-0.1f, 0.25f), Rand(-0.3f, 0.3f)), 2.6f, 0.14f, 0.05f, 0f, 0.3f);
+    }
+
+    private Material? _firefly;
+    private Material[]? _butterflies;
+
+    /// <summary>A fluttering butterfly that zig-zags and drifts upward.</summary>
+    public void Butterfly(Vector3 at)
+    {
+        _butterflies ??= [.. new[] { "#FFD23F", "#FF7B54", "#9B5DE5", "#FFFFFF", "#4CC9F0" }.Select(c => _textures.Sprite("butterfly" + c, dc =>
+        {
+            SolidColorBrush wing = new(Color.Parse(c));
+            dc.DrawEllipse(wing, null, new Avalonia.Rect(14, 30, 48, 60));
+            dc.DrawEllipse(wing, null, new Avalonia.Rect(66, 30, 48, 60));
+            dc.DrawEllipse(new SolidColorBrush(Color.Parse("#3B2F2A")), null, new Avalonia.Rect(58, 34, 12, 60));
+        }, emissive: 0.6f))];
+        Emit(_butterflies[_random.Next(_butterflies.Length)], at, new Vector3(Rand(-0.8f, 0.8f), Rand(0.05f, 0.3f), Rand(-0.8f, 0.8f)), 4.5f, 0.22f, 0.2f, 0f, 0.05f, spin: 6f);
+    }
+
     private void Firework(Vector3 center)
     {
         Material material = _fireworks[_random.Next(_fireworks.Length)];

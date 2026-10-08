@@ -68,6 +68,14 @@ Album keluarga (gambar 19) sekarang punya bingkai (klasik, kayu, pastel, emas, f
 | **Pagi setelah menginap di tenda** | **Peta dengan pilihan kendaraan** |
 | ![](images/35-camping-morning.png) | ![](images/18-town-map.png) |
 
+## Baru di v1.3
+
+| Pantai yang ramai: laut, ombak, payung, perahu, turis | Perkemahan Pramuka di hutan pinus |
+|---|---|
+| ![](images/36-beach-life.png) | ![](images/37-camp-scouts.png) |
+| **Langit senja dengan awan di atas danau perkemahan** | **Pantai sore** |
+| ![](images/38-golden-hour-sky.png) | ![](images/15-trip-beach-sunset.png) |
+
 ## Seni & aset
 
 | Concept art keluarga | Interior rumah |

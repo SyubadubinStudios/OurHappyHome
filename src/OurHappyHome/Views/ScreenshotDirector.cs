@@ -40,6 +40,14 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         await WaitForGame();
         GameScreen game = window.Game!;
         game.ClosePanel();
+        if (Environment.GetEnvironmentVariable("OHH_SHOTS_ONLY") == "scenes")
+        {
+            // Dev shortcut: only the outdoor trip scenes, from several angles.
+            await ScenesAsync(game);
+            Dispatcher.UIThread.Post(() => window.Close());
+            return;
+        }
+
         game.Renderer!.Rig.Yaw = 0.35f;
         await Simulate(game, 20f * 60f / 60f, realSeconds: 6);
         await Shot("morning-kids-room");
@@ -321,6 +329,41 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         await Simulate(game, 0, realSeconds: 4);
         await Shot("camping-morning");
 
+        // v1.3: lively beach, the scouts' camp and the new sky.
+        await SkipTo(game, 2, 5, 11f);
+        session.SetWeather(WeatherKind.Sunny);
+        session.Travel(PlaceId.Beach, true);
+        session.SetWeather(WeatherKind.Sunny);
+        game.Renderer!.Rig.Yaw = MathF.PI + 0.25f;
+        game.Renderer!.Rig.Zoom = 1.25f;
+        game.Renderer!.Rig.Snap(new Vector3(session.Controlled.Position.X, 1f, session.Controlled.Position.Y));
+        await Simulate(game, 0, realSeconds: 4);
+        await Shot("beach-life");
+        game.Renderer!.Rig.Zoom = 1f;
+
+        await SkipTo(game, 2, 5, 15.5f);
+        session.Travel(PlaceId.Camping, true);
+        session.SetWeather(WeatherKind.Sunny);
+        session.Controlled.Position = new Vector2(-6f, -236f);
+        session.Controlled.Yaw = MathF.Atan2(15f, -9f);
+        game.Renderer!.Rig.Yaw = session.Controlled.Yaw + MathF.PI;
+        game.Renderer!.Rig.Zoom = 0.75f;
+        game.Renderer!.Rig.Snap(new Vector3(session.Controlled.Position.X, 1f, session.Controlled.Position.Y));
+        await Simulate(game, 0, realSeconds: 4);
+        await Shot("camp-scouts");
+        game.Renderer!.Rig.Zoom = 1f;
+
+        await SkipTo(game, 2, 5, 17.55f);
+        session.SetWeather(WeatherKind.Sunny);
+        session.Controlled.Position = new Vector2(-46f, -244f);
+        session.Controlled.Yaw = MathF.Atan2(-12f, -12f);
+        game.Renderer!.Rig.Yaw = session.Controlled.Yaw + MathF.PI;
+        game.Renderer!.Rig.PitchOffset = -0.2f;
+        game.Renderer!.Rig.Snap(new Vector3(-46f, 1f, -244f));
+        await Simulate(game, 0, realSeconds: 3);
+        await Shot("golden-hour-sky");
+        game.Renderer!.Rig.PitchOffset = 0f;
+
         Dispatcher.UIThread.Post(() => window.Close());
     }
 
@@ -400,6 +443,33 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
             }
 
             m.Sick = false;
+        }
+    }
+
+    /// <summary>The beach and the campsite by day and night, looking four ways.</summary>
+    private async Task ScenesAsync(GameScreen game)
+    {
+        GameSession session = game.Session;
+        foreach ((PlaceId place, int day, float hour) in new[] { (PlaceId.Beach, 8, 10.5f), (PlaceId.Beach, 8, 17.6f), (PlaceId.Camping, 8, 10.5f), (PlaceId.Camping, 8, 21f) })
+        {
+            await SkipTo(game, 1, day, hour);
+            session.SetWeather(WeatherKind.Sunny);
+            session.Travel(place, true);
+            await Simulate(game, 0, realSeconds: 3);
+            for (int i = 0; i < 4; i++)
+            {
+                game.Renderer!.Rig.Yaw = session.Controlled.Yaw + MathF.PI + (i * MathF.PI / 2f);
+                game.Renderer!.Rig.Snap(new Vector3(session.Controlled.Position.X, 1f, session.Controlled.Position.Y));
+                await Wait(1.2);
+                await Shot($"scene-{place.ToString().ToLowerInvariant()}-{(int)hour:00}-{i}");
+            }
+
+            // Looking out towards the horizon to check the sky.
+            game.Renderer!.Rig.PitchOffset = -0.22f;
+            game.Renderer!.Rig.Yaw = session.Controlled.Yaw + MathF.PI;
+            await Wait(1.2);
+            await Shot($"scene-{place.ToString().ToLowerInvariant()}-{(int)hour:00}-sky");
+            game.Renderer!.Rig.PitchOffset = 0f;
         }
     }
 

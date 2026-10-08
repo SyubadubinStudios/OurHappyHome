@@ -70,6 +70,13 @@ Persahabatan disimpan di `GameState.Friendships`.
 kembang api dikirim sebagai `EffectEvent` dari `OnMinute` 20:00–20:12. **Perjalanan** memakai
 `TravelMode` (Walk/Car/Angkot) dan **menginap** (`StayOvernight`) memajukan jam ke 07:00 esok hari.
 
+**Lingkungan (v1.3)** — `FeatureKind.Prop` menaruh model (Rodin/Blender) sebagai pemandangan dengan
+collision, `Decal` adalah hiasan datar (handuk, jalan setapak), dan `Shore` menggambar pasir basah, air
+dangkal serta buih yang bergerak. `Ocean.CollisionArea` dimulai 6 m dari garis pantai sehingga orang bisa
+bermain air. Pengunjung `Npc.Ambient` memakai jadwal yang sama dengan tetangga, tetapi tidak bisa diajak
+bicara. `Rendering/SkyDome` adalah tiga bola besar tanpa culling yang mengikuti kamera: gradasi langit
+(diwarnai sesuai jam), awan transparan yang berputar pelan, dan bintang.
+
 **Skenario** (`Scenarios/`) punya tujuan, aktor (kucing, monyet, ular, babi hutan, orang asing, polisi,
 pemadam, petugas), target interaksi khusus, *hook* (listrik diperbaiki, api padam, diselamatkan…) dan
 bisa mengarahkan AI keluarga. Skenario besar menyimpan *snapshot* JSON untuk **Ulangi Kejadian**.

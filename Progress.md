@@ -110,6 +110,30 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
       otomatis; uji seminggu kini 6 seed)
 - [x] 35 screenshot otomatis (7 baru)
 
+## 2026-10-08 · v1.3
+
+### Aset
+- [x] Rodin: pohon kelapa, warung bambu pantai, pohon pinus, burung camar
+- [x] Blender MCP (`model_props.py`, saat kredit Rodin habis): perahu jukung, menara penjaga pantai, kursi &
+      payung pantai, tenda kubah (3 warna), bangku kayu, batu, tiang bendera, dan 6 pengunjung (turis pria,
+      turis wanita, anak turis, Pramuka putra & putri, pendaki) yang di-rig dengan `rig_character.py`
+
+### Game
+- [x] `SkyDome`: gradasi langit, lapisan awan, lapisan bintang, mengikuti kamera; kabut lebih tipis
+- [x] Kamera "scenic" lebih rendah saat jauh dari rumah sehingga langit terlihat
+- [x] Pantai: material laut baru, `Shore` (pasir basah, air dangkal, buih bergerak), area dangkal bisa
+      dimasuki (orang tenggelam setinggi pinggang), titik kedatangan dekat laut
+- [x] Perkemahan: jalan aspal tidak lagi membelah perkemahan, jalan setapak tanah, danau, perkemahan Pramuka,
+      cincin hutan pinus, area kedatangan bebas pohon
+- [x] `FeatureKind.Prop` (model sebagai pemandangan) dan `Decal` (handuk, jalan setapak) di peta
+- [x] Pengunjung `Ambient` dengan jadwal (tidak bisa diajak bicara)
+- [x] Burung camar terbang & suaranya, kupu-kupu, kunang-kunang
+- [x] Mode pengembang `OHH_SHOTS_ONLY=scenes` untuk merender pantai & perkemahan dari empat arah
+
+### Kualitas
+- [x] 52 test xUnit (baru: pantai & perkemahan ramai, area dangkal, pengunjung)
+- [x] 38 screenshot otomatis (3 baru)
+
 ## Catatan perbaikan selama pengembangan
 - Titik pendekatan kursi makan semula berada di dalam meja, sehingga AI tidak pernah sampai. Sekarang titiknya dihitung di luar footprint, dan perjalanan punya batas waktu.
 - Bahan makanan habis di tengah minggu. Sekarang orang tua berbelanja otomatis saat persediaan menipis.
@@ -121,3 +145,6 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - (v1.1) Pratinjau "side" di Blender memutar kamera 90°, sehingga anjing & kucing tampak berbaring. Kamera pratinjau sekarang memakai sumbu atas yang benar.
 - (v1.2) Ibu terus mencoba memasak resep yang bahannya habis (pemilih resep belum mengenal resep v1.1 dan jatuh ke "telur" yang juga gagal), sehingga tidak ada yang belanja dan keluarga kelaparan. Pemilih resep kini mengenal resep baru dan hanya memilih masakan yang bisa dibuat.
 - (v1.2) Pose Read/Cook/Work/Run membuat kepala mendongak dan badan condong ke belakang karena tanda sumbu X terbalik untuk tulang punggung dan kepala. Sudah diperbaiki di skrip rig.
+- (v1.3) Laut tampak seperti pasir: material air memantulkan langit terang pada sudut kamera rendah. Laut kini memakai material sendiri yang lebih gelap dan kurang memantul.
+- (v1.3) Langit hanya warna latar. ThreeNet tidak punya skybox, jadi dibuat kubah langit sendiri; tekstur awan dicerminkan terhadap garis cakrawala karena arah V bola tidak pasti.
+- (v1.3) Handuk berdiri tegak karena `EulerAngles` menimpa rotasi -90° quad tanah; kini rotasi digabung (yaw × pitch).
