@@ -58,7 +58,18 @@ for RID in osx-arm64 osx-x64; do
 
   if command -v hdiutil >/dev/null 2>&1; then
     ln -s /Applications "$STAGE/Applications"
-    hdiutil create -volname "Our Happy Home" -srcfolder "$STAGE" -ov -format UDZO "$ART/OurHappyHome-$VERSION-macos-$ARCH.dmg"
+    # hdiutil sometimes fails with "Resource busy" on CI runners; retry a few times.
+    for attempt in 1 2 3 4 5; do
+      if hdiutil create -volname "Our Happy Home" -srcfolder "$STAGE" -ov -format UDZO "$ART/OurHappyHome-$VERSION-macos-$ARCH.dmg"; then
+        break
+      fi
+      if [ "$attempt" = 5 ]; then
+        echo "hdiutil failed after $attempt attempts" >&2
+        exit 1
+      fi
+      echo "hdiutil busy, retrying ($attempt)..."
+      sleep $((attempt * 5))
+    done
     echo "DMG: $ART/OurHappyHome-$VERSION-macos-$ARCH.dmg"
   fi
 
