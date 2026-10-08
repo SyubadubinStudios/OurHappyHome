@@ -21,6 +21,12 @@ public enum RoomId
     Garden,
     Pool,
     TreeHouse,
+
+    // Upper floor (v1.4): areas sit at Floors.UpperOffset on the simulation plane.
+    UpperHall,
+    Attic,
+    Studio,
+    Balcony,
 }
 
 public enum FloorStyle
@@ -140,7 +146,32 @@ public static class Rooms
         new(RoomId.Garden, new(-15f, 8f, -9f, 14f), false, 800_000, 1, FloorStyle.Grass, "#6FA35A", []),
         new(RoomId.Pool, new(3f, -14.5f, 10f, -9.5f), false, 6_000_000, 4, FloorStyle.Tile, "#5EC4E8", []),
         new(RoomId.TreeHouse, new(-15f, -15.5f, -10.5f, -10.5f), false, 3_000_000, 4, FloorStyle.Grass, "#8C6B4A", []),
+
+        // ---- upper floor, above the hallway, parents' room, kids' room and living room
+        new(RoomId.UpperHall, new(-1.25f, -706f, 1.25f, -700f), true, 5_500_000, 3, FloorStyle.Wood, "#EFE6D8",
+        [
+            new(false, -1.25f, -703f, 0.9f, RoomId.Attic),
+            new(false, 1.25f, -703f, 0.9f, RoomId.Studio),
+            new(true, -700f, -0.6f, 0.9f, null),
+        ]),
+        new(RoomId.Attic, new(-6f, -706f, -1.25f, -700f), true, 2_800_000, 3, FloorStyle.Wood, "#F6E6C8",
+        [
+            new(false, -1.25f, -703f, 0.9f, RoomId.UpperHall),
+        ], RoomId.UpperHall),
+        new(RoomId.Studio, new(1.25f, -706f, 6f, -700f), true, 3_200_000, 3, FloorStyle.Carpet, "#DDEFE6",
+        [
+            new(false, 1.25f, -703f, 0.9f, RoomId.UpperHall),
+        ], RoomId.UpperHall),
+        new(RoomId.Balcony, new(-6f, -700f, 0f, -694f), false, 0, 3, FloorStyle.Wood, "#C9A26B", [], RoomId.UpperHall),
     ];
+
+    /// <summary>The family lot or the upper floor: anywhere that counts as being at home.</summary>
+    public static bool AtHome(Vector2 p) => Lot.Contains(p) || Floors.IsUpper(p);
+
+    /// <summary>Like <see cref="AtHome"/> with a margin around the lot.</summary>
+    public static bool NearHome(Vector2 p, float margin) => Lot.Inflate(margin).Contains(p) || Floors.IsUpper(p);
+
+    public static bool IsUpperRoom(RoomId id) => id is RoomId.UpperHall or RoomId.Attic or RoomId.Studio or RoomId.Balcony;
 
     public static readonly RoomId[] StartingRooms =
     [
@@ -168,6 +199,10 @@ public static class Rooms
         RoomId.Backyard => Loc.T("Halaman Belakang", "Backyard"),
         RoomId.Garden => Loc.T("Kebun", "Garden"),
         RoomId.Pool => Loc.T("Kolam Renang", "Swimming Pool"),
+        RoomId.UpperHall => Loc.T("Lantai Atas & Tangga", "Upstairs & Staircase"),
+        RoomId.Attic => Loc.T("Loteng", "Attic"),
+        RoomId.Studio => Loc.T("Studio Atas", "Upstairs Studio"),
+        RoomId.Balcony => Loc.T("Balkon", "Balcony"),
         _ => Loc.T("Rumah Pohon", "Tree House"),
     };
 
@@ -182,6 +217,10 @@ public static class Rooms
         RoomId.Garden => Loc.T("Bunga dan kebun sayur. Hasil panen bisa dijual.", "Flowers and a vegetable patch. Sell the harvest."),
         RoomId.Pool => Loc.T("Kolam renang keluarga untuk berlatih berenang.", "A family pool to practise swimming."),
         RoomId.TreeHouse => Loc.T("Rumah pohon untuk petualangan dan markas rahasia anak-anak.", "A tree house for adventures and the kids' secret base."),
+        RoomId.UpperHall => Loc.T("Rumah jadi dua lantai! Tangga di lorong, lorong atas dan balkon di atas ruang keluarga.", "A second storey! Stairs in the hallway, an upstairs hall and a balcony over the living room."),
+        RoomId.Attic => Loc.T("Loteng di bawah atap: tempat main, membaca dan menyimpan harta karun.", "An attic under the roof: for play, reading and treasure."),
+        RoomId.Studio => Loc.T("Studio terang untuk belajar, menggambar dan main komputer.", "A bright studio for homework, drawing and computer time."),
+        RoomId.Balcony => Loc.T("Balkon dengan teleskop untuk melihat bintang.", "A balcony with a telescope for stargazing."),
         _ => Loc.T("Bagian dari rumah keluarga.", "Part of the family home."),
     };
 
@@ -203,6 +242,10 @@ public static class Rooms
         RoomId.Backyard => "🌳",
         RoomId.Garden => "🌻",
         RoomId.Pool => "🏊",
+        RoomId.UpperHall => "🪜",
+        RoomId.Attic => "🧸",
+        RoomId.Studio => "🎨",
+        RoomId.Balcony => "🔭",
         _ => "🌲",
     };
 

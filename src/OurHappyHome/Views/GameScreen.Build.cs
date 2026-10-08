@@ -62,6 +62,7 @@ public sealed partial class GameScreen
         if (_renderer is not null)
         {
             _renderer.BuildMode = false;
+            _renderer.House.BuildUpper = false;
             _renderer.Rig.Zoom = 1f;
         }
 
@@ -110,6 +111,29 @@ public sealed partial class GameScreen
         }
 
         body.Children.Add(tools);
+
+        if (state.House.HasUpperFloor && _renderer is not null)
+        {
+            // Which floor the cursor works on.
+            WrapPanel floors = new();
+            foreach ((bool upper, string icon, string label) in new[] { (false, "⬇", Loc.T("Lantai bawah", "Ground floor")), (true, "⬆", Loc.T("Lantai atas", "Upper floor")) })
+            {
+                Button b = TabButton(label, icon, _renderer.House.BuildUpper == upper, () =>
+                {
+                    _renderer.House.BuildUpper = upper;
+                    Vector3 c = _renderer.Rig.BuildCenter;
+                    _renderer.Rig.BuildCenter = new Vector3(c.X, upper ? Floors.Height : 0f, c.Z);
+                    _placing = null;
+                    _moving = null;
+                    _renderer.SetGhost(null, default, 0, true);
+                    RebuildBuildPanel();
+                });
+                b.Margin = new Thickness(0, 0, 6, 6);
+                floors.Children.Add(b);
+            }
+
+            body.Children.Add(floors);
+        }
 
         switch (_tool)
         {
@@ -252,7 +276,7 @@ public sealed partial class GameScreen
         float right = Axis(Avalonia.Input.Key.D, Avalonia.Input.Key.A) + Axis(Avalonia.Input.Key.Right, Avalonia.Input.Key.Left);
         Vector2 pan = (_renderer.Rig.Forward * forward) + (_renderer.Rig.Right * right);
         Vector3 c = _renderer.Rig.BuildCenter + (new Vector3(pan.X, 0f, pan.Y) * 14f * dt);
-        _renderer.Rig.BuildCenter = new Vector3(Math.Clamp(c.X, -20f, 22f), 0f, Math.Clamp(c.Z, -20f, 20f));
+        _renderer.Rig.BuildCenter = new Vector3(Math.Clamp(c.X, -20f, 22f), _renderer.Rig.BuildCenter.Y, Math.Clamp(c.Z, -20f, 20f));
         if (Axis(Avalonia.Input.Key.Q, Avalonia.Input.Key.Z) != 0f)
         {
             _renderer.Rig.Yaw += Axis(Avalonia.Input.Key.Q, Avalonia.Input.Key.Z) * dt * 1.5f;

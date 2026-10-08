@@ -116,7 +116,7 @@ public sealed class GreatStormScenario(GameSession s) : Scenario(s, ScenarioKind
             m.AwayUntil = S.Now;
         }
 
-        if (State.Members.All(m => Rooms.Lot.Contains(m.Position) || m.Away))
+        if (State.Members.All(m => Rooms.AtHome(m.Position) || m.Away))
         {
             Done("home");
         }

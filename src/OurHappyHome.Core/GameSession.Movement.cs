@@ -69,8 +69,20 @@ public sealed partial class GameSession
             rects.Add(Rect.FromCenter(Rooms.Get(RoomId.TreeHouse).Area.Center, new Vector2(1.4f, 1.4f)));
         }
 
+        if (house.HasUpperFloor)
+        {
+            // Staircase downstairs, the hole around it upstairs, and the balcony railing.
+            rects.Add(Floors.Stairs);
+            rects.Add(Floors.StairHole);
+            Rect balcony = Rooms.Get(RoomId.Balcony).Area;
+            rects.Add(new Rect(balcony.X0 - 0.1f, balcony.Z0, balcony.X0 + 0.05f, balcony.Z1));
+            rects.Add(new Rect(balcony.X1 - 0.05f, balcony.Z0, balcony.X1 + 0.1f, balcony.Z1));
+            rects.Add(new Rect(balcony.X0, balcony.Z1 - 0.05f, balcony.X1, balcony.Z1 + 0.1f));
+        }
+
         Collision.SetDynamic(rects);
         HomeNav = new NavGrid(NavArea, 0.25f, Collision, CharacterRadius);
+        UpperNav = house.HasUpperFloor ? new NavGrid(Floors.UpperArea, 0.25f, Collision, CharacterRadius) : null;
         _collisionRevision = (house.Revision * 100_000) + house.FurnitureRevision;
     }
 
@@ -119,6 +131,11 @@ public sealed partial class GameSession
         OnPlayerMoved(m);
     }
 
+    /// <summary>Raka rides his bicycle when he has one and is out and about (it also makes him faster).</summary>
+    public bool IsRiding(FamilyMember m) =>
+        State.Inventory.Has("bicycle") && m.Id == MemberId.Player && m.Moving && m.Climb is null && m.Anchor is null
+        && !State.House.IsIndoors(m.Position) && !Rooms.AtHome(m.Position) && Map.InteriorAt(m.Position) is null;
+
     /// <summary>Slower when exhausted, sick or carrying someone who is down.</summary>
     public float SpeedModifier(FamilyMember m)
     {
@@ -147,7 +164,7 @@ public sealed partial class GameSession
             modifier *= 0.75f;
         }
 
-        if (State.Inventory.Has("bicycle") && m.Id == MemberId.Player && !State.House.IsIndoors(m.Position) && !Rooms.Lot.Contains(m.Position))
+        if (State.Inventory.Has("bicycle") && m.Id == MemberId.Player && !State.House.IsIndoors(m.Position) && !Rooms.AtHome(m.Position))
         {
             modifier *= 1.8f;
         }
@@ -178,6 +195,12 @@ public sealed partial class GameSession
         if (m.Away)
         {
             m.Moving = false;
+            return;
+        }
+
+        // On the stairs: the climb runs its course first.
+        if (UpdateClimb(m, realDt * MathF.Min(speed, 4f)))
+        {
             return;
         }
 
@@ -215,7 +238,7 @@ public sealed partial class GameSession
             return;
         }
 
-        if (State.Party.Contains(m.Id) && !Rooms.Lot.Contains(Controlled.Position))
+        if (State.Party.Contains(m.Id) && !Rooms.AtHome(Controlled.Position))
         {
             // On a trip the family stays close to the player.
             FollowLeader(m, Controlled, realDt);
@@ -284,6 +307,12 @@ public sealed partial class GameSession
                 }
 
                 aim = path[0];
+                if (Floors.IsUpper(aim) != Floors.IsUpper(m.Position))
+                {
+                    path.RemoveAt(0);
+                    StartClimb(m);
+                    return;
+                }
             }
         }
         else
@@ -339,6 +368,15 @@ public sealed partial class GameSession
         }
 
         Vector2 waypoint = task.Path[task.PathIndex];
+        if (Floors.IsUpper(waypoint) != Floors.IsUpper(m.Position))
+        {
+            // The next waypoint is on the other floor: we are at the stairs.
+            StartClimb(m);
+            task.PathIndex++;
+            task.WalkTime = MathF.Max(0f, task.WalkTime - Floors.ClimbSeconds);
+            return false;
+        }
+
         Vector2 to = waypoint - m.Position;
         float distance = to.Length();
         bool last = task.PathIndex == task.Path.Count - 1;
@@ -393,14 +431,84 @@ public sealed partial class GameSession
         return false;
     }
 
+    /// <summary>Navigation on the upper floor (null until it is built).</summary>
+    public NavGrid? UpperNav { get; private set; }
+
     public List<Vector2>? FindPath(Vector2 from, Vector2 to)
     {
+        bool fromUp = Floors.IsUpper(from);
+        bool toUp = Floors.IsUpper(to);
+        if (fromUp != toUp && UpperNav is not null && (fromUp || Rooms.Lot.Contains(from)) && (toUp || Rooms.Lot.Contains(to)))
+        {
+            // Across floors: walk to the stairs, climb (the jump between waypoints), walk on.
+            Vector2 near = fromUp ? Floors.StairTop : Floors.StairBottom;
+            Vector2 far = fromUp ? Floors.StairBottom : Floors.StairTop;
+            List<Vector2> first = FindPath(from, near) ?? [near];
+            List<Vector2> second = FindPath(far, to) ?? [to];
+            return [.. first, far, .. second];
+        }
+
+        if (fromUp && toUp && UpperNav is { } upper)
+        {
+            return upper.FindPath(from, to, Collision, CharacterRadius);
+        }
+
         if (HomeNav is { } nav && nav.Contains(from) && nav.Contains(to))
         {
             return nav.FindPath(from, to, Collision, CharacterRadius);
         }
 
         return [to];
+    }
+
+    /// <summary>Walking distance inside the home, counting the trip up or down the stairs.</summary>
+    public static float HomeDistance(Vector2 a, Vector2 b)
+    {
+        bool aUp = Floors.IsUpper(a);
+        if (aUp == Floors.IsUpper(b))
+        {
+            return Vector2.Distance(a, b);
+        }
+
+        Vector2 aEnd = aUp ? Floors.StairTop : Floors.StairBottom;
+        Vector2 bEnd = aUp ? Floors.StairBottom : Floors.StairTop;
+        return Vector2.Distance(a, aEnd) + Vector2.Distance(bEnd, b) + 4f;
+    }
+
+    /// <summary>Starts climbing to the other floor from the stair end the member stands at.</summary>
+    public void StartClimb(FamilyMember m)
+    {
+        if (m.Climb is not null || !State.House.HasUpperFloor)
+        {
+            return;
+        }
+
+        bool up = !Floors.IsUpper(m.Position);
+        m.Climb = new StairClimb { Up = up };
+        m.Moving = true;
+        m.Yaw = up ? 0f : MathF.PI;
+        Bus.Sound("footstep", Floors.ToRender(m.Position, 1f), 0.4f);
+    }
+
+    /// <summary>Advances a climb; true while the member is still on the stairs.</summary>
+    private bool UpdateClimb(FamilyMember m, float dt)
+    {
+        if (m.Climb is not { } climb)
+        {
+            return false;
+        }
+
+        climb.Time += dt;
+        m.Moving = true;
+        if (climb.Time >= Floors.ClimbSeconds)
+        {
+            m.Position = climb.Up ? Floors.StairTop : Floors.StairBottom;
+            m.Climb = null;
+            m.Moving = false;
+            m.StuckTimer = 0f;
+        }
+
+        return true;
     }
 
     public static float TurnTowards(float current, float target, float maxStep)
@@ -477,7 +585,7 @@ public sealed partial class GameSession
         }
 
         // Anyone left out on an earlier trip heads home.
-        foreach (FamilyMember m in State.Members.Where(m => m.Id != player.Id && !m.Away && !State.Party.Contains(m.Id) && !Rooms.Lot.Contains(m.Position)))
+        foreach (FamilyMember m in State.Members.Where(m => m.Id != player.Id && !m.Away && !State.Party.Contains(m.Id) && !Rooms.AtHome(m.Position)))
         {
             CancelTask(m);
             m.Safety = SafetyState.Normal;
@@ -697,7 +805,7 @@ public sealed partial class GameSession
         else if (roll < 0.8f)
         {
             pet.State = PetState.Wander;
-            Vector2 around = Rooms.Lot.Contains(pet.Position) ? pet.Position : player.Position;
+            Vector2 around = Rooms.AtHome(pet.Position) ? pet.Position : player.Position;
             for (int i = 0; i < 6; i++)
             {
                 Vector2 candidate = around + new Vector2(Random.Range(-5f, 5f), Random.Range(-5f, 5f));

@@ -31,6 +31,8 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
 | ![Festival](docs/images/31-festival-park.png) | ![Tarik tambang](docs/images/33-tug-of-war.png) |
 | **Baru v1.3: pantai yang hidup** | **Baru v1.3: perkemahan & langit** |
 | ![Pantai](docs/images/36-beach-life.png) | ![Perkemahan](docs/images/37-camp-scouts.png) |
+| **Baru v1.4: rumah dua lantai** | **Baru v1.4: tangga & lantai atas** |
+| ![Rumah dua lantai](docs/images/39-two-storey-front.png) | ![Lantai atas](docs/images/42-upstairs-studio.png) |
 
 ---
 
@@ -43,7 +45,8 @@ pastikan **tidak ada yang tertinggal** saat keadaan darurat.
   memasak, bekerja, sekolah, membaca, menggambar, mandi, tidur, mengobrol, bertengkar lalu berbaikan
   tanpa menunggu perintah pemain.
 - **Bangun rumah** dari *Rumah Kecil* sampai *Rumah Impian*: 9 ruangan tambahan (kamar Kakak & Adik,
-  ruang bermain, perpustakaan, garasi, bengkel, ruang rahasia, kebun, kolam renang, rumah pohon),
+  ruang bermain, perpustakaan, garasi, bengkel, ruang rahasia, kebun, kolam renang, rumah pohon), plus
+  **lantai atas** dengan tangga, balkon, loteng dan studio,
   40+ perabot interaktif, cat dinding dan lantai.
 - **Kehidupan sehari-hari**: sarapan bersama, sekolah (6 pelajaran sebagai mini-game), gaji Ayah tiap
   Jumat, tagihan rumah, belanja, usaha kue Ibu, jualan limun anak-anak, hewan peliharaan, kalender
@@ -136,6 +139,8 @@ make sure **nobody gets left behind** when emergencies strike.
 - **Seasons, national holidays and school breaks**, a monthly **town festival** (cracker eating contest,
   tug of war, fireworks), **neighbour schedules and friendships**, **car and angkot travel**, **overnight
   trips**, and mood-driven **body language** with talking mouths.
+- A **two-storey house** with stairs, balcony, attic and studio; a rideable **bicycle**, bus stops and **angkot**
+  traffic.
 - A **sky dome** with drifting clouds and stars, a lively **beach** (waves, boats, tourists, seagulls) and
   **campsite** (pine forest, lake, scouts, butterflies and fireflies).
 - **Cozy and Adventure modes**, an explorable **town**, a **family album** of auto-captured photos with frames and stickers,

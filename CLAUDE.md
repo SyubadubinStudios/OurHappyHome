@@ -61,6 +61,10 @@ dotnet run --project src/OurHappyHome -- --screenshots docs/images      # regene
 - When Rodin credits run out, model props in Blender with `tools/blender/model_props.py` (through Blender MCP).
 - `ScreenshotDirector.SkipTo` jumps the calendar without simulating; schedule minutes replay from
   `ScheduleCursor`, so set it just before the target minute.
+- Upper floor (`World/Floors`): upstairs rooms live at `Floors.UpperOffset` (0, -700) on the 2D plane; convert
+  positions with `Floors.ToRender` for anything drawn, use `Rooms.AtHome` (not `Rooms.Lot`) for "at home", and
+  `GameSession.HomeDistance` for distances inside the house. `Collision.Move` clamps upstairs to `Floors.UpperArea`.
+- `OHH_SHOTS_ONLY=house` renders only the two-storey house shots.
 - Interiors (`WorldMap.Interiors`) are diorama rooms at x ≈ 245–290, z ≈ -290…-255, built from interior
   `FeatureKind`s; enter/exit teleports and publishes `TeleportEvent` for the camera.
 

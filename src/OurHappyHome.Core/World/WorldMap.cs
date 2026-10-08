@@ -172,6 +172,11 @@ public sealed class WorldMap
             return inside.Place;
         }
 
+        if (Floors.IsUpper(p))
+        {
+            return PlaceId.Home;
+        }
+
         // Small places first so a shop inside downtown wins over the district.
         foreach (Place place in Places.OrderBy(pl => pl.Area.Width * pl.Area.Depth))
         {
@@ -364,9 +369,18 @@ public sealed class WorldMap
 
         BuildCamp(new GameRandom(31));
 
+        // Angkot stops (halte): by the family home, downtown and at the park.
+        foreach ((float x, float z, float yaw) in HalteSpots)
+        {
+            Prop("halte", new Vector2(x, z), new Vector2(3f, 1.2f), 2.6f, yaw);
+        }
+
         BuildFestival();
         BuildInteriors();
     }
+
+    /// <summary>Bus stop positions (x, z, yaw); angkots pause in front of them.</summary>
+    public static readonly (float X, float Z, float Yaw)[] HalteSpots = [(7.5f, 16.1f, 0f), (-44f, 25.6f, MathF.PI), (24f, 126.4f, 0f)];
 
     // ------------------------------------------------------- beach & camp
 

@@ -39,6 +39,8 @@ public sealed class CharacterView
         public string? HatId;
         public Jaw? Jaw;
         public float TalkUntil;
+        public Node? Bike;
+        public bool BikeShown;
     }
 
     private readonly Scene _scene;
@@ -154,7 +156,8 @@ public sealed class CharacterView
         FamilyMember controlled = session.Controlled;
         Rig me = _rigs[controlled.Id];
         _ring.Visible = !controlled.Away;
-        _ring.Position = new Vector3(controlled.Position.X, (controlled.Anchor?.Y ?? 0f) + 0.04f, controlled.Position.Y);
+        _ring.Position = Floors.ToRender(controlled.Position, (controlled.Anchor?.Y ?? 0f) + 0.04f);
+        _ring.Visible = !controlled.Away && controlled.Climb is null;
         _ring.EulerAngles = new Vector3(0f, _time * 1.5f, 0f);
 
         bool flashlight = session.FlashlightOn;
@@ -166,7 +169,7 @@ public sealed class CharacterView
         if (flashlight)
         {
             Vector2 forward = new(MathF.Sin(controlled.Yaw), MathF.Cos(controlled.Yaw));
-            Vector3 from = new(controlled.Position.X + (forward.X * 0.3f), 1.15f, controlled.Position.Y + (forward.Y * 0.3f));
+            Vector3 from = Floors.ToRender(controlled.Position + (forward * 0.3f), 1.15f);
             _flashlight.Position = from;
             _flashlight.LookAt(from + new Vector3(forward.X * 4f, -1.2f, forward.Y * 4f));
         }
@@ -194,7 +197,8 @@ public sealed class CharacterView
         }
 
         bool talking = _time < rig.TalkUntil && text is not null;
-        Play(rig, IdleClip(m, talking));
+        bool riding = session.IsRiding(m);
+        Play(rig, riding ? "Sit" : IdleClip(m, talking));
         rig.Jaw?.Update(talking, _time, dt, m.InDanger || m.Animation == "Scared" ? 0.35f : 0f);
         if (rig.Previous is not null)
         {
@@ -229,7 +233,7 @@ public sealed class CharacterView
             rig.HatId = hat;
         }
 
-        Vector3 position = new(m.Position.X, 0f, m.Position.Y);
+        Vector3 position = Floors.ToRender(m.Position);
         Quaternion rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, m.Yaw);
         Vector3 modelOffset = Vector3.Zero;
         Quaternion modelRotation = Quaternion.Identity;
@@ -239,23 +243,55 @@ public sealed class CharacterView
             switch (m.Pose)
             {
                 case AnchorPose.Sit:
-                    position = anchor;
+                    position = Floors.ToRender(anchor);
                     modelOffset = new Vector3(0f, 0.08f - rig.HipHeight + 0.02f, -0.05f);
                     break;
                 case AnchorPose.Lie:
                     // Head towards the bed's headboard, face up.
-                    position = anchor;
+                    position = Floors.ToRender(anchor);
                     modelRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -MathF.PI / 2f);
                     modelOffset = new Vector3(0f, 0.12f, rig.Height * 0.48f);
                     break;
                 default:
-                    position = anchor;
+                    position = Floors.ToRender(anchor);
                     break;
             }
         }
         else if (m.Safety == SafetyState.Down)
         {
             modelOffset = new Vector3(0f, -rig.HipHeight + 0.15f, 0f);
+        }
+
+        // Riding the bicycle: sit on the saddle with the bike underneath.
+        if (riding && rig.Bike is null)
+        {
+            rig.Bike = rig.Root.CreateChild("bicycle");
+            if (_models.Height("bicycle", rig.Bike, 1.0f) is null)
+            {
+                _m.Block(rig.Bike, 0f, 0f, 0.3f, new Vector3(0.1f, 0.5f, 1.5f), _t.Solid("#E63946"));
+            }
+
+            rig.Bike.SetShadowsRecursive(true, true);
+        }
+
+        if (rig.Bike is not null && rig.BikeShown != riding)
+        {
+            rig.Bike.Visible = riding;
+            rig.BikeShown = riding;
+        }
+
+        if (riding)
+        {
+            modelOffset = new Vector3(0f, 0.72f - rig.HipHeight, -0.18f);
+            modelRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0.04f * MathF.Sin(_time * 3f));
+        }
+
+        // On the stairs: follow the steps.
+        if (m.Climb is { } climb)
+        {
+            position = Floors.StairPoint(climb.Up ? climb.Progress : 1f - climb.Progress);
+            rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, climb.Up ? 0f : MathF.PI);
+            Play(rig, "Walk");
         }
 
         // Swimming in the pool: sink to the chest.
@@ -429,7 +465,7 @@ public sealed class CharacterView
         p.Y > 300f && p.X is > -80f and < 180f ? MathF.Min((p.Y - 300f) * 0.12f, 0.6f) : 0f;
 
     /// <summary>World position of a member's head, for UI anchoring.</summary>
-    public Vector3 HeadPosition(FamilyMember m) => new(m.Position.X, (m.Anchor?.Y ?? 0f) + _rigs[m.Id].Height, m.Position.Y);
+    public Vector3 HeadPosition(FamilyMember m) => Floors.ToRender(m.Position, (m.Anchor?.Y ?? 0f) + _rigs[m.Id].Height);
 
     // ------------------------------------------------------------------ pets
 
@@ -467,14 +503,14 @@ public sealed class CharacterView
                 };
                 petFigure.Play(clip, session.EffectiveSpeed > 4f ? 2f : 1f);
                 petFigure.Update(dt);
-                visual.Node.SetTransform(new Vector3(pet.Position.X, 0f, pet.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, pet.Yaw), Vector3.One);
+                visual.Node.SetTransform(Floors.ToRender(pet.Position), Quaternion.CreateFromAxisAngle(Vector3.UnitY, pet.Yaw), Vector3.One);
                 continue;
             }
 
             float bob = pet.Moving ? MathF.Abs(MathF.Sin(_time * 14f)) * 0.06f : 0f;
             float squash = pet.State == PetState.Sleep ? 0.7f : 1f + (0.02f * MathF.Sin(_time * 3f));
             float hop = pet.State == PetState.Bark ? MathF.Abs(MathF.Sin(_time * 12f)) * 0.15f : 0f;
-            visual.Node.SetTransform(new Vector3(pet.Position.X, bob + hop, pet.Position.Y), Quaternion.CreateFromAxisAngle(Vector3.UnitY, pet.Yaw), Vector3.One);
+            visual.Node.SetTransform(Floors.ToRender(pet.Position, bob + hop), Quaternion.CreateFromAxisAngle(Vector3.UnitY, pet.Yaw), Vector3.One);
             visual.Model.Scale = new Vector3(1f, squash, 1f);
             visual.Model.EulerAngles = new Vector3(0f, 0f, pet.Moving ? MathF.Sin(_time * 14f) * 0.06f : 0f);
         }

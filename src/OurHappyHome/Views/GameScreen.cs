@@ -387,7 +387,7 @@ public sealed partial class GameScreen : UserControl, IKeyHandler
         {
             mood = MusicMood.Night;
         }
-        else if (!Rooms.Lot.Contains(player.Position))
+        else if (!Rooms.AtHome(player.Position))
         {
             mood = MusicMood.Explore;
         }
@@ -528,7 +528,7 @@ public sealed partial class GameScreen : UserControl, IKeyHandler
             if (Vector2.Distance(ground, me.Position) < 60f)
             {
                 Session.StartTask(me, ActivityId.Idle, null, -1, target: ground, run: _keys.Contains(Key.LeftShift), fromPlayer: true, minutes: 1);
-                _renderer.Effects.Burst(EffectKind.Sparkles, new Vector3(ground.X, 0.2f, ground.Y), 0.4f);
+                _renderer.Effects.Burst(EffectKind.Sparkles, Floors.ToRender(ground, 0.2f), 0.4f);
             }
         }
     }

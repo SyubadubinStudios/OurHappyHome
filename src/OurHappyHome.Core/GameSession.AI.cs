@@ -40,7 +40,7 @@ public sealed partial class GameSession
         }
 
         // On a trip outside the lot, autonomous members just stay with the group.
-        if (!Rooms.Lot.Inflate(2f).Contains(m.Position))
+        if (!Rooms.NearHome(m.Position, 2f))
         {
             StartTask(m, ActivityId.Idle, null, -1, target: m.Position);
             return;
@@ -289,7 +289,7 @@ public sealed partial class GameSession
         // A little distance cost and some randomness so days differ.
         if (furniture is { } f)
         {
-            score -= Vector2.Distance(m.Position, f.Item.ApproachPoint(f.Slot)) * 0.015f;
+            score -= HomeDistance(m.Position, f.Item.ApproachPoint(f.Slot)) * 0.015f;
         }
 
         // Don't repeat the same thing over and over.
@@ -343,12 +343,12 @@ public sealed partial class GameSession
                 continue;
             }
 
-            if (o.Id == State.Controlled || !Rooms.Lot.Contains(o.Position))
+            if (o.Id == State.Controlled || !Rooms.AtHome(o.Position))
             {
                 continue;
             }
 
-            float distance = Vector2.Distance(o.Position, m.Position);
+            float distance = HomeDistance(o.Position, m.Position);
             if (distance > 14f)
             {
                 continue;
@@ -454,7 +454,7 @@ public sealed partial class GameSession
                 return;
             case ActivityId.Clean when State.House.Hazards
                 .Where(h => h.Kind is HazardKind.Puddle or HazardKind.Flour or HazardKind.BrokenGlass or HazardKind.Debris)
-                .OrderBy(h => Vector2.Distance(h.Position, m.Position)).FirstOrDefault() is { } mess:
+                .OrderBy(h => HomeDistance(h.Position, m.Position)).FirstOrDefault() is { } mess:
                 // Mop where the mess actually is (a bathroom puddle is far from the kitchen).
                 StartTask(m, ActivityId.Clean, null, -1, target: mess.Position);
                 return;
@@ -537,7 +537,7 @@ public sealed partial class GameSession
                 slot = 0;
             }
 
-            float distance = Vector2.Distance(m.Position, item.ApproachPoint(slot));
+            float distance = HomeDistance(m.Position, item.ApproachPoint(slot));
             float preference = 0f;
             if (activity is ActivityId.Sleep or ActivityId.Nap)
             {

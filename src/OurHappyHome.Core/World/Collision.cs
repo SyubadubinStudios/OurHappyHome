@@ -154,7 +154,8 @@ public sealed class CollisionWorld
             }
         }
 
-        return WorldMap.Bounds.Clamp(p, radius);
+        // The upper floor lives outside the town bounds (see Floors).
+        return Floors.IsUpper(p) ? Floors.UpperArea.Clamp(p, radius) : WorldMap.Bounds.Clamp(p, radius);
     }
 
     /// <summary>True when a straight walk from a to b is clear (sampled).</summary>

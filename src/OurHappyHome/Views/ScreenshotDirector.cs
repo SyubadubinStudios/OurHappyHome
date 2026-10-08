@@ -40,6 +40,14 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         await WaitForGame();
         GameScreen game = window.Game!;
         game.ClosePanel();
+        if (Environment.GetEnvironmentVariable("OHH_SHOTS_ONLY") == "house")
+        {
+            // Dev shortcut: only the two-storey house shots.
+            await HouseShots(game);
+            Dispatcher.UIThread.Post(() => window.Close());
+            return;
+        }
+
         if (Environment.GetEnvironmentVariable("OHH_SHOTS_ONLY") == "scenes")
         {
             // Dev shortcut: only the outdoor trip scenes, from several angles.
@@ -364,6 +372,10 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
         await Shot("golden-hour-sky");
         game.Renderer!.Rig.PitchOffset = 0f;
 
+        // v1.4: the two-storey house, the stairs, upstairs rooms, bicycle and bus stop.
+        session.Travel(PlaceId.Home, false);
+        await HouseShots(game);
+
         Dispatcher.UIThread.Post(() => window.Close());
     }
 
@@ -444,6 +456,78 @@ public sealed class ScreenshotDirector(MainWindow window, string folder)
 
             m.Sick = false;
         }
+    }
+
+    /// <summary>The two-storey house: outside, on the stairs, upstairs and in build mode.</summary>
+    private async Task HouseShots(GameScreen game)
+    {
+        GameSession session = game.Session;
+        House house = session.State.House;
+        foreach (RoomId room in new[] { RoomId.UpperHall, RoomId.Attic, RoomId.Studio })
+        {
+            house.Build(room);
+        }
+
+        await SkipTo(game, 1, 8, 10f);
+        session.SetWeather(WeatherKind.Sunny);
+
+        // Outside, from the front garden and from the back.
+        session.Controlled.Position = new Vector2(-2f, 12.5f);
+        session.Controlled.Yaw = MathF.PI;
+        game.Renderer!.Rig.Yaw = 0.35f;
+        game.Renderer!.Rig.Zoom = 1.6f;
+        game.Renderer!.Rig.Snap(new Vector3(-2f, 1f, 12.5f));
+        await Simulate(game, 0, realSeconds: 3);
+        await Shot("two-storey-front");
+        game.Renderer!.Rig.Yaw = MathF.PI - 0.5f;
+        session.Controlled.Position = new Vector2(2f, -12f);
+        game.Renderer!.Rig.Snap(new Vector3(2f, 1f, -12f));
+        await Wait(1.5);
+        await Shot("two-storey-back");
+        game.Renderer!.Rig.Zoom = 1f;
+
+        // Climbing the stairs.
+        session.Controlled.Position = Floors.StairBottom;
+        game.Renderer!.Rig.Yaw = MathF.PI + 0.6f;
+        game.Renderer!.Rig.Snap(new Vector3(Floors.StairBottom.X, 1f, Floors.StairBottom.Y));
+        await Wait(1);
+        session.StartClimb(session.Controlled);
+        await Wait(0.9);
+        await Shot("stairs-climb");
+        await Wait(1.5);
+
+        // Upstairs: the studio, the attic and the balcony.
+        foreach ((RoomId room, string name, float yaw) in new[] { (RoomId.Studio, "upstairs-studio", 0.4f), (RoomId.Attic, "upstairs-attic", -0.4f), (RoomId.Balcony, "upstairs-balcony", 0.5f) })
+        {
+            Vector2 c = Rooms.Get(room).Area.Center;
+            session.Controlled.Position = c + new Vector2(0f, 1.2f);
+            game.Renderer!.Rig.Yaw = yaw;
+            game.Renderer!.Rig.Snap(Floors.ToRender(c, 1f));
+            await Simulate(game, 0, realSeconds: 2.5);
+            await Shot(name);
+        }
+
+        // Build mode on the upper floor.
+        session.Controlled.Position = Rooms.Get(RoomId.Studio).Area.Center;
+        game.OpenPanel("build");
+        await Wait(1);
+        game.Renderer!.House.BuildUpper = true;
+        game.Renderer!.Rig.BuildCenter = new Vector3(0f, Floors.Height, -2f);
+        await Wait(1.5);
+        await Shot("build-upper-floor");
+        game.ExitBuildForCapture();
+
+        // Riding the bicycle past the bus stop on the main street.
+        session.State.Inventory.Add("bicycle");
+        session.Controlled.Position = new Vector2(-2f, 19.8f);
+        session.Controlled.Yaw = MathF.PI / 2f;
+        game.Renderer!.Rig.Yaw = -MathF.PI / 2f + 0.5f;
+        game.Renderer!.Rig.Snap(new Vector3(-2f, 1f, 19.8f));
+        session.StartTask(session.Controlled, ActivityId.Idle, null, -1, target: new Vector2(40f, 19.8f), fromPlayer: true, minutes: 1);
+        await Wait(1.0);
+        game.Renderer!.Rig.Snap(Floors.ToRender(session.Controlled.Position, 1f));
+        await Wait(0.4);
+        await Shot("bicycle-and-halte");
     }
 
     /// <summary>The beach and the campsite by day and night, looking four ways.</summary>

@@ -71,11 +71,20 @@ sungguhan, ekspresi wajah dengan morph target saat ThreeNet mendukungnya.
 - Model tambahan dibuat langsung di Blender lewat Blender MCP saat kredit Rodin habis
   (`tools/blender/model_props.py`)
 
-## Fase 3c — Rumah bertingkat (v1.4)
+## Fase 3c — Rumah bertingkat ✅ (v1.4)
 
-- Rumah dua lantai dengan tangga, loteng dan balkon
-- Ekspresi wajah dengan morph target dan sinkronisasi bibir dari amplitudo suara
-- Sepeda yang terlihat saat dikendarai, halte angkot di kota
+- Rumah dua lantai: tangga kayu di lorong, Lantai Atas (lorong atas + balkon di atas ruang keluarga),
+  Loteng di atas kamar Ayah & Ibu, dan Studio di atas kamar anak; masing-masing dengan perabot awal
+- Naik-turun tangga dengan animasi (pemain lewat interaksi "Naik/Turun", keluarga otomatis lewat jalur
+  yang melewati tangga); AI memakai ruangan atas (jarak dihitung lewat tangga)
+- Cutaway per lantai: lantai atas disembunyikan saat di bawah, atap ruangan bawah yang tertutup lantai atas
+  hilang, balkon dengan pagar, mode bangun dengan pilihan lantai
+- Sepeda Raka terlihat saat dikendarai di luar rumah, halte angkot (dekat rumah, taman, pusat kota) dan
+  dua angkot yang berkeliling jalan utama dan berhenti di halte
+- Pencapaian "Rumah Bertingkat" dan kenangan saat lantai atas selesai dibangun
+
+Belum: ekspresi wajah dengan morph target dan sinkronisasi bibir dari amplitudo suara (menunggu dukungan
+morph target di ThreeNet).
 
 ## Fase 4 — Platform & komunitas (v2.0)
 

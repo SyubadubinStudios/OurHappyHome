@@ -613,4 +613,102 @@ public class SimulationTests
         Assert.Contains(s.Npcs, n => n.Ambient && n.Present && n.Model.StartsWith("scout", StringComparison.Ordinal));
         Assert.DoesNotContain(s.Npcs, n => n.Ambient && n.Present && n.Model.StartsWith("tourist", StringComparison.Ordinal));
     }
+
+    // ------------------------------------------------------------------ v1.4
+
+    private static GameSession HouseWithUpperFloor()
+    {
+        GameSession s = NewSession();
+        s.State.House.Build(RoomId.UpperHall);
+        s.State.House.Build(RoomId.Attic);
+        s.State.House.Build(RoomId.Studio);
+        s.Tick(0.05f); // rebuild collision and navigation
+        return s;
+    }
+
+    [Fact]
+    public void UpperFloorComesWithStairsBalconyAndItsOwnRooms()
+    {
+        GameSession s = HouseWithUpperFloor();
+        House house = s.State.House;
+        Assert.True(house.Has(RoomId.Balcony));
+        Assert.Equal(RoomId.Attic, house.RoomAt(Rooms.Get(RoomId.Attic).Area.Center));
+        Assert.Equal(RoomId.Balcony, house.RoomAt(Rooms.Get(RoomId.Balcony).Area.Center));
+        Assert.True(house.IsIndoors(Rooms.Get(RoomId.Studio).Area.Center));
+        Assert.False(house.IsIndoors(Rooms.Get(RoomId.Balcony).Area.Center));
+        Assert.Equal(PlaceId.Home, s.Map.PlaceAt(Rooms.Get(RoomId.Attic).Area.Center));
+        Assert.True(Rooms.AtHome(Floors.StairTop));
+        Assert.Contains(house.Furniture, f => f.DefId == "telescope" && f.Room == RoomId.Balcony);
+
+        // The stairs and the hole around them are solid; both ends are free.
+        Assert.True(s.Collision.Blocked(Floors.Stairs.Center, 0.1f));
+        Assert.True(s.Collision.Blocked(Floors.StairHole.Center, 0.1f));
+        Assert.False(s.Collision.Blocked(Floors.StairBottom, GameSession.CharacterRadius));
+        Assert.False(s.Collision.Blocked(Floors.StairTop, GameSession.CharacterRadius));
+
+        // No falling off the balcony.
+        Rect balcony = Rooms.Get(RoomId.Balcony).Area;
+        Assert.True(s.Collision.Blocked(new Vector2(balcony.Center.X, balcony.Z1), 0.1f));
+
+        GameState loaded = SaveSystem.Deserialize(SaveSystem.Serialize(s.State));
+        Assert.True(loaded.House.Has(RoomId.Attic));
+        Assert.Contains(loaded.House.Furniture, f => f.Room == RoomId.Studio);
+    }
+
+    [Fact]
+    public void FamilyWalksUpAndDownTheStairs()
+    {
+        GameSession s = HouseWithUpperFloor();
+        Vector2 living = new(-3f, 3.4f);
+        Vector2 attic = Rooms.Get(RoomId.Attic).Area.Center + new Vector2(0.5f, 1.2f);
+        List<Vector2> path = s.FindPath(living, attic)!;
+        Assert.Contains(path, p => Floors.IsUpper(p));
+        Assert.Contains(path, p => !Floors.IsUpper(p));
+
+        FamilyMember me = s.Controlled;
+        me.Position = living;
+        s.StartTask(me, ActivityId.Idle, null, -1, target: attic, fromPlayer: true, minutes: 1);
+        bool climbed = false;
+        for (int i = 0; i < 1200 && Vector2.Distance(me.Position, attic) > 0.3f; i++)
+        {
+            s.Tick(0.05f);
+            climbed |= me.Climb is not null;
+        }
+
+
+        Assert.True(climbed);
+        Assert.True(Floors.IsUpper(me.Position));
+        Assert.Equal(RoomId.Attic, s.State.House.RoomAt(me.Position));
+
+        // And down again with the stairs interaction.
+        me.Position = Floors.StairTop;
+        InteractionOption down = s.GetInteractions().First(t => t.Key == "stairs").Options[0];
+        down.Execute();
+        for (int i = 0; i < 100 && me.Climb is not null; i++)
+        {
+            s.Tick(0.05f);
+        }
+
+        Assert.False(Floors.IsUpper(me.Position));
+        Assert.Equal(RoomId.Hall, s.State.House.RoomAt(me.Position));
+    }
+
+    [Fact]
+    public void FamilyStaysHealthyWithATwoStoreyHouse()
+    {
+        GameSession s = HouseWithUpperFloor();
+        bool someoneWentUpstairs = false;
+        for (int hour = 0; hour < 3 * 24; hour++)
+        {
+            Run(s, 60);
+            someoneWentUpstairs |= s.State.Members.Any(m => m.Id != s.State.Controlled && Floors.IsUpper(m.Position));
+        }
+
+        Assert.True(someoneWentUpstairs, "nobody used the upper floor");
+        foreach (FamilyMember m in s.State.Members.Where(m => m.Id != s.State.Controlled && !m.Away))
+        {
+            Assert.True(m.Needs[NeedKind.Hunger] > 5f, $"{m.Id} hunger {m.Needs[NeedKind.Hunger]}");
+            Assert.True(Rooms.AtHome(m.Position) || m.Away, $"{m.Id} wandered off to {m.Position}");
+        }
+    }
 }

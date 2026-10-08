@@ -122,8 +122,9 @@ public sealed class EventBus
     // Convenience helpers.
     public void Notice(string text, string icon = "ℹ", NoticeKind kind = NoticeKind.Info) => Publish(new NoticeEvent(text, icon, kind));
 
-    public void Sound(string sound, Vector3? position = null, float gain = 1f) => Publish(new SoundEvent(sound, position, gain));
+    public void Sound(string sound, Vector3? position = null, float gain = 1f) =>
+        Publish(new SoundEvent(sound, position is { } p ? World.Floors.ToRender(p) : null, gain));
 
     public void Effect(EffectKind kind, Vector2 position, float height = 1.2f, float scale = 1f) =>
-        Publish(new EffectEvent(kind, new Vector3(position.X, height, position.Y), scale));
+        Publish(new EffectEvent(kind, World.Floors.ToRender(position, height), scale));
 }

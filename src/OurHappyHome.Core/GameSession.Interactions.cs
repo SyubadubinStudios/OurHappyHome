@@ -90,6 +90,26 @@ public sealed partial class GameSession
             }
         }
 
+        if (State.House.HasUpperFloor && me.Climb is null)
+        {
+            bool upstairs = Floors.IsUpper(p);
+            Vector2 end = upstairs ? Floors.StairTop : Floors.StairBottom;
+            float stairDistance = Vector2.Distance(end, p);
+            if (stairDistance <= 1.6f)
+            {
+                Vector3 marker = Floors.ToRender(end, 1.8f);
+                targets.Add(new InteractionTarget("stairs", Loc.T("Tangga", "Stairs"), "🪜", new Vector3(end.X, marker.Y, end.Y), stairDistance + 0.1f,
+                [
+                    new("climb", upstairs ? Loc.T("Turun ke lantai bawah", "Go downstairs") : Loc.T("Naik ke lantai atas", "Go upstairs"), upstairs ? "⬇" : "⬆", () =>
+                    {
+                        CancelTask(me);
+                        me.Position = end;
+                        StartClimb(me);
+                    }),
+                ]));
+            }
+        }
+
         float doorDistance = Vector2.Distance(Rooms.FrontDoor, p);
         if (doorDistance <= 2.2f)
         {
@@ -1285,6 +1305,14 @@ public sealed partial class GameSession
 
         State.House.Build(room);
         State.AddStat(Stat.RoomsBuilt);
+        if (room == RoomId.UpperHall)
+        {
+            State.AddStat(Stat.UpperFloor);
+            CreateMemory(Loc.T("Rumah jadi dua lantai!", "A two-storey home!"),
+                Loc.T("Anak-anak berlomba naik tangga baru dan berdiri di balkon sambil melambai ke tetangga.", "The children raced up the new stairs and waved at the neighbours from the balcony."),
+                MemoryKind.Building, EmotionalOutcome.Proud, FamilyNames.All, Rooms.Name(RoomId.UpperHall), 4f, "upper-floor");
+        }
+
         RebuildCollision();
 
         // Nobody may end up inside a new wall.

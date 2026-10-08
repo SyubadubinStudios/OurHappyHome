@@ -193,7 +193,7 @@ public sealed class FloodScenario(GameSession s) : Scenario(s, ScenarioKind.Loca
         }
 
         // A child playing outside gets stuck on the swing in rising water.
-        FamilyMember? outside = Present.FirstOrDefault(m => m.IsChild && m.Id != State.Controlled && !House.IsIndoors(m.Position) && Rooms.Lot.Contains(m.Position));
+        FamilyMember? outside = Present.FirstOrDefault(m => m.IsChild && m.Id != State.Controlled && !House.IsIndoors(m.Position) && Rooms.AtHome(m.Position));
         if (outside is null && State.Mode != GameMode.Cozy && S.Random.Chance(0.6f))
         {
             outside = Present.Where(m => m.IsChild && m.Id != State.Controlled).OrderBy(_ => S.Random.NextFloat()).FirstOrDefault();
@@ -224,7 +224,7 @@ public sealed class FloodScenario(GameSession s) : Scenario(s, ScenarioKind.Loca
             Done("doors");
         }
 
-        if (Present.All(m => House.IsIndoors(m.Position) || !Rooms.Lot.Contains(m.Position)) && !AnyoneInDanger)
+        if (Present.All(m => House.IsIndoors(m.Position) || !Rooms.AtHome(m.Position)) && !AnyoneInDanger)
         {
             Done("inside");
             Done("rescue");

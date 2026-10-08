@@ -136,6 +136,12 @@ public sealed class House
             return false;
         }
 
+        if (room == RoomId.UpperHall && Furniture.Any(f => f.Room == RoomId.Hall && f.Def.Height > 0.05f && !f.Def.WallMounted && f.Bounds.Overlaps(Floors.Stairs.Inflate(0.4f))))
+        {
+            reason = Loc.T("Kosongkan sisi timur lorong untuk tangga", "Clear the east side of the hallway for the stairs");
+            return false;
+        }
+
         reason = "";
         return true;
     }
@@ -149,10 +155,19 @@ public sealed class House
                 Place(id, room, local, rotation);
             }
 
+            // The upper floor comes with its balcony.
+            if (room == RoomId.UpperHall)
+            {
+                Build(RoomId.Balcony);
+            }
+
             Touch();
             TouchFurniture();
         }
     }
+
+    /// <summary>True when the stairs exist (the upper floor has been built).</summary>
+    public bool HasUpperFloor => Has(RoomId.UpperHall);
 
     // ------------------------------------------------------------------ rooms
 
@@ -168,7 +183,7 @@ public sealed class House
             }
         }
 
-        foreach (RoomId id in new[] { RoomId.Pool, RoomId.TreeHouse, RoomId.Garden })
+        foreach (RoomId id in new[] { RoomId.Pool, RoomId.TreeHouse, RoomId.Garden, RoomId.Balcony })
         {
             if (Has(id) && Rooms.Get(id).Area.Contains(p))
             {
@@ -434,6 +449,31 @@ public sealed class House
         RoomId.Hall =>
         [
             ("fuse-box", new(-1.05f, -5.0f), 1),
+        ],
+        RoomId.UpperHall =>
+        [
+            ("plant", new(-0.8f, -705.5f), 0),
+        ],
+        RoomId.Attic =>
+        [
+            ("rug", new(-3.6f, -703f), 0),
+            ("toy-box", new(-5.2f, -705.4f), 0),
+            ("beanbag", new(-2.3f, -704.8f), 0),
+            ("bookshelf", new(-5.65f, -702.4f), 1),
+        ],
+        RoomId.Studio =>
+        [
+            ("desk", new(3.6f, -705.1f), 0),
+            ("easel", new(5.2f, -702.2f), 3),
+            ("computer", new(2.4f, -701f), 2),
+            ("plant", new(5.5f, -700.6f), 0),
+        ],
+        RoomId.Balcony =>
+        [
+            ("telescope", new(-4.8f, -695.2f), 2),
+            ("plant", new(-0.6f, -694.6f), 0),
+            ("plant", new(-5.5f, -699.3f), 0),
+            ("beanbag", new(-2.5f, -696f), 2),
         ],
         RoomId.ParentsBedroom =>
         [

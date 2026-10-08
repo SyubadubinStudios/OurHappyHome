@@ -255,6 +255,79 @@ def flag_pole():
     return join(parts, "flag-pole")
 
 
+def text_mesh(body, size, loc, material, rot=(math.pi / 2, 0, 0)):
+    """Flat 3D text (converted to a mesh) standing up and facing -Y."""
+    bpy.ops.object.text_add(location=loc, rotation=rot)
+    t = bpy.context.active_object
+    t.data.body = body
+    t.data.size = size
+    t.data.align_x = "CENTER"
+    t.data.extrude = 0.01
+    bpy.ops.object.convert(target="MESH")
+    return _finish(t, material, False)
+
+
+def bicycle():
+    """A child's bicycle with a front basket (front is -Y)."""
+    frame, tyre, grey, seat = mat("#E63946", 0.4, 0.3), mat("#1E1E1E", 0.8), mat("#B9C2CC", 0.3, 0.7), mat("#2B2B2B", 0.6)
+    parts = []
+    for y in (-0.52, 0.52):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.3, minor_radius=0.035, major_segments=24, minor_segments=8, location=(0, y, 0.33), rotation=(0, math.pi / 2, 0))
+        parts.append(_finish(bpy.context.active_object, tyre, True))
+        parts.append(cyl(0.04, 0.08, (0, y, 0.33), grey, rot=(0, math.pi / 2, 0), verts=10))
+        for a in range(6):
+            ang = a * math.pi / 3
+            parts.append(box((0.01, 0.56, 0.012), (0, y, 0.33), grey, rot=(ang, 0, 0)))
+    hub_r, bracket, seat_p, head, hub_f = (0, 0.52, 0.33), (0, 0.02, 0.3), (0, 0.18, 0.72), (0, -0.38, 0.74), (0, -0.52, 0.33)
+    for a, b in ((hub_r, bracket), (hub_r, seat_p), (bracket, seat_p), (bracket, head), (seat_p, head), (head, hub_f)):
+        parts += capsule(a, b, 0.022, frame, verts=8)
+    parts.append(sphere(1, (0, 0.2, 0.78), seat, scale=(0.09, 0.14, 0.04), segments=12))
+    parts += capsule((0, -0.38, 0.74), (0, -0.4, 0.9), 0.02, grey, verts=8)
+    parts += capsule((-0.24, -0.4, 0.9), (0.24, -0.4, 0.9), 0.018, grey, verts=8)
+    for x in (-0.25, 0.25):
+        parts += capsule((x, -0.4, 0.9), (x * 1.05, -0.4, 0.9), 0.028, mat("#FFD23F", 0.5), verts=8)
+    parts.append(box((0.3, 0.22, 0.18), (0, -0.62, 0.78), mat("#C8A165", 0.8), bevel=0.02))
+    parts.append(cyl(0.07, 0.02, (0, 0.02, 0.3), grey, rot=(0, math.pi / 2, 0), verts=12))
+    return join(parts, "bicycle")
+
+
+def angkot():
+    """An Indonesian angkot minibus (front is -Y): blue body, yellow stripe, roof sign."""
+    blue, yellow, glass, tyre, chrome = mat("#2E86C1", 0.35, 0.2), mat("#FFD23F", 0.5), mat("#203040", 0.1, 0.3), mat("#1E1E1E", 0.8), mat("#C9D1D9", 0.2, 0.8)
+    parts = [box((1.7, 4.2, 1.35), (0, 0, 0.98), blue, bevel=0.08)]
+    parts.append(box((1.72, 4.22, 0.18), (0, 0, 0.62), yellow))
+    parts.append(box((1.6, 1.0, 0.6), (0, -1.75, 0.63), blue, bevel=0.06))   # bonnet
+    parts.append(box((1.5, 0.05, 0.55), (0, -1.53, 1.3), glass))             # windscreen
+    for x in (-0.86, 0.86):
+        parts.append(box((0.04, 3.3, 0.5), (x, 0.3, 1.3), glass))            # side windows
+    parts.append(box((0.04, 0.9, 1.1), (0.86, 1.55, 0.98), mat("#1B2430", 0.6)))  # open side door
+    for (x, y) in ((-0.78, -1.45), (0.78, -1.45), (-0.78, 1.4), (0.78, 1.4)):
+        parts.append(cyl(0.33, 0.22, (x, y, 0.33), tyre, rot=(0, math.pi / 2, 0), verts=16))
+        parts.append(cyl(0.16, 0.24, (x, y, 0.33), chrome, rot=(0, math.pi / 2, 0), verts=12))
+    for x in (-0.55, 0.55):
+        parts.append(sphere(0.1, (x, -2.27, 0.75), mat("#FFF3B0", 0.2, emit=1.5), segments=10))
+    parts.append(box((1.2, 0.5, 0.25), (0, -0.6, 1.8), mat("#FFFFFF", 0.5)))
+    parts.append(text_mesh("ANGKOT", 0.2, (0, -0.86, 1.73), mat("#E63946", 0.5)))
+    return join(parts, "angkot")
+
+
+def halte():
+    """A small bus stop shelter with a bench and a sign (front is -Y)."""
+    post, roof, bench, sign = mat("#5C6B73", 0.4, 0.5), mat("#2E86C1", 0.5), mat("#C8A165", 0.8), mat("#2E6FBF", 0.5)
+    parts = []
+    for x in (-1.3, 1.3):
+        for y in (-0.5, 0.5):
+            parts.append(cyl(0.05, 2.3, (x, y, 1.15), post, verts=8))
+    parts.append(box((3.0, 1.5, 0.1), (0, 0.05, 2.35), roof, rot=(math.radians(-6), 0, 0)))
+    parts.append(box((2.4, 0.4, 0.06), (0, 0.25, 0.48), bench))
+    parts.append(box((2.4, 0.06, 0.4), (0, 0.45, 0.75), bench))
+    parts.append(box((2.7, 0.04, 1.2), (0, 0.55, 1.4), mat("#BFE3F2", 0.1)))
+    parts.append(cyl(0.04, 2.6, (1.75, -0.5, 1.3), post, verts=8))
+    parts.append(box((0.7, 0.04, 0.45), (1.75, -0.5, 2.45), sign))
+    parts.append(text_mesh("HALTE", 0.16, (1.75, -0.53, 2.39), mat("#FFFFFF", 0.4)))
+    return join(parts, "halte")
+
+
 # ------------------------------------------------------------------- people
 
 # skin, top, bottom, hair, extras
@@ -347,6 +420,9 @@ BUILDERS = {
     "log-bench": log_bench,
     "rocks": rocks,
     "flag-pole": flag_pole,
+    "bicycle": bicycle,
+    "angkot": angkot,
+    "halte": halte,
 }
 
 HEIGHTS = {"tourist-man": 1.72, "tourist-woman": 1.62, "tourist-kid": 1.15, "scout": 1.4, "scout-girl": 1.38, "hiker": 1.74}

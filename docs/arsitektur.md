@@ -77,6 +77,15 @@ bermain air. Pengunjung `Npc.Ambient` memakai jadwal yang sama dengan tetangga, 
 bicara. `Rendering/SkyDome` adalah tiga bola besar tanpa culling yang mengikuti kamera: gradasi langit
 (diwarnai sesuai jam), awan transparan yang berputar pelan, dan bintang.
 
+**Lantai atas (v1.4)** — `World/Floors`: simulasi tetap 2D, jadi ruangan atas (`UpperHall`, `Attic`,
+`Studio`, `Balcony`) punya area di `Floors.UpperOffset` (0, -700) pada bidang yang sama. Dinding, pintu,
+collision dan perabot bekerja seperti biasa; `UpperNav` adalah grid navigasi lantai atas. `FindPath` lintas
+lantai menggabungkan jalur ke ujung tangga + titik di lantai lain + jalur lanjutan; `WalkTask` melihat
+lompatan lantai antar-waypoint dan memulai `StairClimb` (1,6 detik). Renderer memetakan posisi lewat
+`Floors.ToRender` (lantai atas diangkat 2,85 m dan digeser kembali ke atas rumah); HouseView menaruh semua
+visual lantai atas di bawah satu node yang ditranslasikan. `Rooms.AtHome` menganggap lantai atas bagian
+dari rumah.
+
 **Skenario** (`Scenarios/`) punya tujuan, aktor (kucing, monyet, ular, babi hutan, orang asing, polisi,
 pemadam, petugas), target interaksi khusus, *hook* (listrik diperbaiki, api padam, diselamatkan…) dan
 bisa mengarahkan AI keluarga. Skenario besar menyimpan *snapshot* JSON untuk **Ulangi Kejadian**.

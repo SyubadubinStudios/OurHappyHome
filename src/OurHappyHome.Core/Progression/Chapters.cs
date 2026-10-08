@@ -31,6 +31,7 @@ public static class Stat
     public const string Overnights = "overnights";
     public const string FestivalGames = "festival-games";
     public const string BestFriends = "best-friends";
+    public const string UpperFloor = "upper-floor";
     public const string BooksRead = "books";
     public const string DaysPlayed = "days";
 }
@@ -141,6 +142,7 @@ public static class Achievements
         new("hundred-days", "100 Hari Bahagia", "100 Happy Days", "Bermain selama 100 hari", "Play for 100 days", "📅", Stat.DaysPlayed, 100),
         new("festival-star", "Bintang Festival", "Festival Star", "Ikut 4 lomba festival", "Join 4 festival contests", "🎪", Stat.FestivalGames, 4),
         new("sleepover", "Liburan Menginap", "A Night Away", "Menginap di tenda atau penginapan pantai", "Stay overnight in a tent or at the beach inn", "🌙", Stat.Overnights, 1),
+        new("two-storey", "Rumah Bertingkat", "Two-Storey Home", "Bangun lantai atas dengan tangga dan balkon", "Build the upper floor with stairs and a balcony", "🪜", Stat.UpperFloor, 1),
         new("good-neighbour", "Tetangga Baik", "Good Neighbour", "Bersahabat dengan seorang tetangga", "Become best friends with a neighbour", "🤝", Stat.BestFriends, 1),
     ];
 }

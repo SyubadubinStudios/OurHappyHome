@@ -594,7 +594,7 @@ public sealed partial class GameSession
         if (w.IsRaining)
         {
             // Rain makes everyone outside run home (or at least under a roof).
-            foreach (FamilyMember m in State.Members.Where(m => !m.Away && m.Id != State.Controlled && !State.House.IsIndoors(m.Position) && Rooms.Lot.Contains(m.Position)))
+            foreach (FamilyMember m in State.Members.Where(m => !m.Away && m.Id != State.Controlled && !State.House.IsIndoors(m.Position) && Rooms.AtHome(m.Position)))
             {
                 CancelTask(m);
                 Say(m, Loc.T("Hujan! Masuk rumah!", "It's raining! Inside!"));

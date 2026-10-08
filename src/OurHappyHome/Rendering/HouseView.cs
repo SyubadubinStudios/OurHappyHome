@@ -64,6 +64,15 @@ public sealed class HouseView
     private Node _structure;
     private readonly Node _furnitureRoot;
     private readonly Node _hazardRoot;
+
+    // The upper floor: lifted by Floors.Height and slid back over the house, so its
+    // children keep their simulation coordinates.
+    private readonly Node _upper;
+    private Node _upperStructure;
+    private readonly Node _upperFurniture;
+    private readonly Node _upperHazards;
+    private readonly List<Node> _upperRoofs = [];
+    private bool _upperShown = true;
     private readonly List<WallVisual> _walls = [];
     private readonly List<DoorVisual> _doors = [];
     private readonly List<Node> _roofs = [];
@@ -86,6 +95,11 @@ public sealed class HouseView
         _structure = scene.CreateNode(_root, "structure");
         _furnitureRoot = scene.CreateNode(_root, "furniture");
         _hazardRoot = scene.CreateNode(_root, "hazards");
+        _upper = scene.CreateNode(_root, "upper-floor");
+        _upper.Position = new Vector3(-Floors.UpperOffset.X, Floors.Height, -Floors.UpperOffset.Y);
+        _upperStructure = scene.CreateNode(_upper, "upper-structure");
+        _upperFurniture = scene.CreateNode(_upper, "upper-furniture");
+        _upperHazards = scene.CreateNode(_upper, "upper-hazards");
 
         // The lot lawn sits just above the town ground.
         Rect lot = Rooms.Lot;
@@ -98,6 +112,11 @@ public sealed class HouseView
     public bool Cutaway { get; set; }
 
     public bool BuildMode { get; set; }
+
+    /// <summary>In build mode: editing the upper floor (shows it and hides the ground-floor roofs).</summary>
+    public bool BuildUpper { get; set; }
+
+    private Node StructureFor(Vector2 p) => Floors.IsUpper(p) ? _upperStructure : _structure;
 
     // --------------------------------------------------------------- sync
 
@@ -131,20 +150,37 @@ public sealed class HouseView
     {
         _structure.Remove();
         _structure = _scene.CreateNode(_root, "structure");
+        _upperStructure.Remove();
+        _upperStructure = _scene.CreateNode(_upper, "upper-structure");
         _walls.Clear();
         _doors.Clear();
         _roofs.Clear();
+        _upperRoofs.Clear();
         _roomLights.Clear();
 
         Material foundation = _t.Solid("#D9D2C5", 0.9f);
         foreach (RoomDef room in house.IndoorRooms)
         {
             Rect a = room.Area;
-            _m.Block(_structure, a.Center.X, a.Center.Y, -0.15f, new Vector3(a.Width + 0.3f, 0.17f, a.Depth + 0.3f), foundation, "foundation").CastShadow = false;
+            bool upper = Rooms.IsUpperRoom(room.Id);
+            Node parent = upper ? _upperStructure : _structure;
+            // Upstairs the "foundation" is the floor slab that also closes the gap above the ground walls.
+            _m.Block(parent, a.Center.X, a.Center.Y, upper ? -0.2f : -0.15f, new Vector3(a.Width + 0.3f, upper ? 0.22f : 0.17f, a.Depth + 0.3f), upper ? _t.Siding : foundation, "foundation").CastShadow = upper;
             Material floor = _scene.CreateMaterial(_t.Floor(house.Floor(room.Id)).Options with { UvScale = a.Size / (house.Floor(room.Id) == FloorStyle.Checker ? 1.2f : 1.6f) });
-            _m.Ground(_structure, new Vector3(a.Center.X, 0.025f, a.Center.Y), a.Size, floor, $"floor-{room.Id}");
+            if (room.Id == RoomId.UpperHall)
+            {
+                // Floor around the stair hole.
+                Rect hole = Floors.StairHole;
+                FloorPiece(parent, new Rect(a.X0, a.Z0, hole.X0, a.Z1), floor, room.Id);
+                FloorPiece(parent, new Rect(hole.X0, a.Z0, a.X1, hole.Z0), floor, room.Id);
+                FloorPiece(parent, new Rect(hole.X0, hole.Z1, a.X1, a.Z1), floor, room.Id);
+            }
+            else
+            {
+                _m.Ground(parent, new Vector3(a.Center.X, 0.025f, a.Center.Y), a.Size, floor, $"floor-{room.Id}");
+            }
 
-            Node light = _scene.AddLight(Light.Point(new Vector3(1f, 0.82f, 0.62f), 7f, MathF.Max(a.Width, a.Depth) + 2.5f), _structure, $"light-{room.Id}");
+            Node light = _scene.AddLight(Light.Point(new Vector3(1f, 0.82f, 0.62f), 7f, MathF.Max(a.Width, a.Depth) + 2.5f), parent, $"light-{room.Id}");
             light.Position = new Vector3(a.Center.X, 2.45f, a.Center.Y);
             _roomLights[room.Id] = light;
         }
@@ -160,20 +196,112 @@ public sealed class HouseView
         }
 
         // One gable roof per room: a little village of roofs that grows with the house.
+        // Ground rooms with a room (or the balcony) above them have no roof of their own.
         foreach (RoomDef room in house.IndoorRooms)
         {
             Rect a = room.Area;
+            bool upper = Rooms.IsUpperRoom(room.Id);
+            if (!upper && CoveredFromAbove(house, a))
+            {
+                continue;
+            }
+
             float rise = MathF.Min(a.Width, a.Depth) * 0.36f;
-            Node roof = _m.Roof(_structure, a.Center, a.Size, WallHeight, rise, 0.35f, _t.RoofTile, _t.Siding);
-            _roofs.Add(roof);
+            Node roof = _m.Roof(upper ? _upperStructure : _structure, a.Center, a.Size, WallHeight, rise, 0.35f, _t.RoofTile, _t.Siding);
+            (upper ? _upperRoofs : _roofs).Add(roof);
+        }
+
+        if (house.HasUpperFloor)
+        {
+            BuildStairs();
+            BuildBalcony();
         }
 
         BuildOutdoorRooms(house);
     }
 
+    private void FloorPiece(Node parent, Rect r, Material floor, RoomId room)
+    {
+        if (r.Width > 0.01f && r.Depth > 0.01f)
+        {
+            _m.Ground(parent, new Vector3(r.Center.X, 0.025f, r.Center.Y), r.Size, floor, $"floor-{room}");
+        }
+    }
+
+    /// <summary>True when an upstairs room or the balcony sits over most of this ground-floor area.</summary>
+    private static bool CoveredFromAbove(House house, Rect ground)
+    {
+        float covered = 0f;
+        foreach (RoomId id in house.BuiltRooms.Where(Rooms.IsUpperRoom))
+        {
+            Rect above = Rooms.Get(id).Area;
+            Rect r = new(above.X0 - Floors.UpperOffset.X, above.Z0 - Floors.UpperOffset.Y, above.X1 - Floors.UpperOffset.X, above.Z1 - Floors.UpperOffset.Y);
+            float w = MathF.Min(r.X1, ground.X1) - MathF.Max(r.X0, ground.X0);
+            float d = MathF.Min(r.Z1, ground.Z1) - MathF.Max(r.Z0, ground.Z0);
+            if (w > 0f && d > 0f)
+            {
+                covered += w * d;
+            }
+        }
+
+        return covered >= ground.Width * ground.Depth * 0.6f;
+    }
+
+    /// <summary>Wooden stairs along the hallway wall, with a railing, and the railing round the hole upstairs.</summary>
+    private void BuildStairs()
+    {
+        Rect s = Floors.Stairs;
+        Material tread = _t.Solid("#B5835A", 0.7f);
+        Material riser = _t.Solid("#F4EFE6", 0.6f);
+        Material rail = _t.Solid("#7A5230", 0.6f);
+        const int steps = 10;
+        float run = s.Depth / steps;
+        for (int i = 0; i < steps; i++)
+        {
+            float top = (i + 1) * Floors.Height / steps;
+            float z = s.Z0 + ((i + 0.5f) * run);
+            _m.Block(_structure, s.Center.X, z, 0f, new Vector3(s.Width, top - 0.04f, run), riser);
+            _m.Block(_structure, s.Center.X, z, top - 0.04f, new Vector3(s.Width + 0.04f, 0.05f, run + 0.03f), tread);
+        }
+
+        // Banister on the open (west) side, rising with the steps.
+        Node banister = _m.Box(_structure, new Vector3(s.X0, (Floors.Height / 2f) + 0.9f, s.Center.Y), new Vector3(0.05f, 0.06f, MathF.Sqrt((s.Depth * s.Depth) + (Floors.Height * Floors.Height))), rail);
+        banister.EulerAngles = new Vector3(-MathF.Atan2(Floors.Height, s.Depth), 0f, 0f);
+        for (int i = 0; i < steps; i += 2)
+        {
+            float z = s.Z0 + ((i + 0.5f) * run);
+            float y = (i + 1) * Floors.Height / steps;
+            _m.Block(_structure, s.X0, z, y, new Vector3(0.04f, 0.9f, 0.04f), rail);
+        }
+
+        // Upstairs: railing round the hole, open at the top step.
+        Rect h = Floors.StairHole;
+        _m.Block(_upperStructure, h.X0, h.Z0 + 0.9f, 0f, new Vector3(0.05f, 0.95f, 1.8f), rail);
+        _m.Block(_upperStructure, h.Center.X, h.Z0, 0f, new Vector3(h.Width, 0.95f, 0.05f), rail);
+    }
+
+    /// <summary>Balcony floor and a white railing around its open sides.</summary>
+    private void BuildBalcony()
+    {
+        Rect a = Rooms.Get(RoomId.Balcony).Area;
+        _m.Block(_upperStructure, a.Center.X, a.Center.Y, -0.2f, new Vector3(a.Width + 0.2f, 0.22f, a.Depth + 0.2f), _t.Siding, "balcony-slab");
+        Material deck = _scene.CreateMaterial(_t.Floor(FloorStyle.Wood).Options with { UvScale = a.Size / 1.6f });
+        _m.Ground(_upperStructure, new Vector3(a.Center.X, 0.025f, a.Center.Y), a.Size, deck, "balcony-floor");
+        Material rail = _t.Solid("#FFFFFF", 0.5f);
+        _m.Block(_upperStructure, a.X0, a.Center.Y, 0.95f, new Vector3(0.06f, 0.06f, a.Depth), rail);
+        _m.Block(_upperStructure, a.X1, a.Center.Y, 0.95f, new Vector3(0.06f, 0.06f, a.Depth), rail);
+        _m.Block(_upperStructure, a.Center.X, a.Z1, 0.95f, new Vector3(a.Width, 0.06f, 0.06f), rail);
+        for (float t = 0f; t <= 1.001f; t += 1f / 12f)
+        {
+            _m.Block(_upperStructure, a.X0, float.Lerp(a.Z0, a.Z1, t), 0f, new Vector3(0.04f, 0.95f, 0.04f), rail);
+            _m.Block(_upperStructure, a.X1, float.Lerp(a.Z0, a.Z1, t), 0f, new Vector3(0.04f, 0.95f, 0.04f), rail);
+            _m.Block(_upperStructure, float.Lerp(a.X0, a.X1, t), a.Z1, 0f, new Vector3(0.04f, 0.95f, 0.04f), rail);
+        }
+    }
+
     private WallVisual BuildWall(House house, WallSegment wall)
     {
-        Node pivot = _scene.CreateNode(_structure, "wall");
+        Node pivot = _scene.CreateNode(StructureFor(wall.Center), "wall");
         pivot.Position = new Vector3(wall.Center.X, 0f, wall.Center.Y);
         pivot.EulerAngles = new Vector3(0f, wall.Horizontal ? 0f : MathF.PI / 2f, 0f);
         float length = wall.Length;
@@ -221,7 +349,7 @@ public sealed class HouseView
 
     private void BuildDoor(DoorOpening door)
     {
-        Node pivot = _scene.CreateNode(_structure, "door");
+        Node pivot = _scene.CreateNode(StructureFor(door.Center), "door");
         pivot.Position = new Vector3(door.Center.X, 0f, door.Center.Y);
         pivot.EulerAngles = new Vector3(0f, door.Horizontal ? 0f : MathF.PI / 2f, 0f);
         Material frame = _t.Solid("#FFFFFF", 0.5f);
@@ -238,7 +366,7 @@ public sealed class HouseView
         }
 
         bool garage = door.Width > 2f;
-        Node hinge = _scene.CreateNode(_structure, "door-hinge");
+        Node hinge = _scene.CreateNode(StructureFor(door.Center), "door-hinge");
         Vector2 along = door.Horizontal ? new Vector2(1f, 0f) : new Vector2(0f, 1f);
         Vector2 hingePos = garage ? door.Center : door.Center - (along * (door.Width / 2f));
         hinge.Position = new Vector3(hingePos.X, 0f, hingePos.Y);
@@ -331,7 +459,15 @@ public sealed class HouseView
         foreach (FurnitureItem item in house.Furniture)
         {
             alive.Add(item.Uid);
-            if (_furniture.TryGetValue(item.Uid, out FurnitureVisual? visual))
+            if (_furniture.TryGetValue(item.Uid, out FurnitureVisual? visual) && Floors.IsUpper(visual.Position) != Floors.IsUpper(item.Position))
+            {
+                // Moved to the other floor: rebuild under the right parent.
+                visual.Node.Remove();
+                _furniture.Remove(item.Uid);
+                visual = null;
+            }
+
+            if (visual is not null)
             {
                 if (visual.Position != item.Position || visual.Rotation != item.Rotation)
                 {
@@ -344,7 +480,7 @@ public sealed class HouseView
                 continue;
             }
 
-            Node node = _scene.CreateNode(_furnitureRoot, item.DefId);
+            Node node = _scene.CreateNode(Floors.IsUpper(item.Position) ? _upperFurniture : _furnitureRoot, item.DefId);
             node.Position = new Vector3(item.Position.X, 0f, item.Position.Y);
             node.EulerAngles = new Vector3(0f, item.Yaw, 0f);
             FurnitureFactory.Build(item.Def, node, _m, _t, _models, item.Uid);
@@ -377,7 +513,7 @@ public sealed class HouseView
             visual.Broken = item.Broken;
             if (item.Broken)
             {
-                visual.BrokenIcon = _m.Quad(null, new Vector3(item.Position.X, item.Def.Height + 0.5f, item.Position.Y), new Vector2(0.45f, 0.45f), _t.Emoji("🛠"), "broken-icon");
+                visual.BrokenIcon = _m.Quad(null, Floors.ToRender(item.Position, item.Def.Height + 0.5f), new Vector2(0.45f, 0.45f), _t.Emoji("🛠"), "broken-icon");
             }
             else
             {
@@ -467,14 +603,16 @@ public sealed class HouseView
     private HazardVisual CreateHazard(Hazard hazard)
     {
         Vector3 p = new(hazard.Position.X, 0f, hazard.Position.Y);
-        Node node = _scene.CreateNode(_hazardRoot, $"hazard-{hazard.Kind}");
+        Node hazardRoot = Floors.IsUpper(hazard.Position) ? _upperHazards : _hazardRoot;
+        Vector3 world = Floors.ToRender(hazard.Position);
+        Node node = _scene.CreateNode(hazardRoot, $"hazard-{hazard.Kind}");
         node.Position = p;
         HazardVisual visual = new() { Node = node, Kind = hazard.Kind };
         switch (hazard.Kind)
         {
             case HazardKind.Puddle or HazardKind.Flood:
                 {
-                    Node disc = _scene.AddMesh(_m.UnitDisc, _t.PoolWater, _hazardRoot, "water");
+                    Node disc = _scene.AddMesh(_m.UnitDisc, _t.PoolWater, hazardRoot, "water");
                     disc.Position = p + new Vector3(0f, 0.04f, 0f);
                     disc.CastShadow = false;
                     node.Remove();
@@ -484,7 +622,7 @@ public sealed class HouseView
 
             case HazardKind.Flour:
                 {
-                    Node disc = _scene.AddMesh(_m.UnitDisc, _t.Solid("#FBFAF5", 0.95f), _hazardRoot, "flour");
+                    Node disc = _scene.AddMesh(_m.UnitDisc, _t.Solid("#FBFAF5", 0.95f), hazardRoot, "flour");
                     disc.Position = p + new Vector3(0f, 0.035f, 0f);
                     disc.CastShadow = false;
                     node.Remove();
@@ -493,12 +631,12 @@ public sealed class HouseView
                 }
 
             case HazardKind.Fire:
-                visual.Emitter = _effects.AddEmitter(EffectKind.Fireworks, p + new Vector3(0f, 0.9f, 0f), 20f);
+                visual.Emitter = _effects.AddEmitter(EffectKind.Fireworks, world + new Vector3(0f, 0.9f, 0f), 20f);
                 visual.Light = _scene.AddLight(Light.Point(new Vector3(1f, 0.55f, 0.2f), 10f, 7f), node, "fire-light");
                 visual.Light.Position = new Vector3(0f, 1.4f, 0f);
                 break;
             case HazardKind.Smoke:
-                visual.Emitter = _effects.AddEmitter(EffectKind.Smoke, p + new Vector3(0f, 1.4f, 0f), 4f);
+                visual.Emitter = _effects.AddEmitter(EffectKind.Smoke, world + new Vector3(0f, 1.4f, 0f), 4f);
                 break;
             case HazardKind.BrokenGlass:
                 {
@@ -536,11 +674,27 @@ public sealed class HouseView
     {
         FamilyMember player = session.Controlled;
         Vector2 p = player.Position;
-        bool inside = session.IsIndoors(p) || (Rooms.Lot.Contains(p) && BuildMode);
+        bool upstairs = Floors.IsUpper(p) || player.Climb is { Up: true, Progress: > 0.5f } || player.Climb is { Up: false, Progress: < 0.5f };
+        // The balcony counts as inside for the cutaway, so the upstairs roofs never block the view.
+        bool inside = session.IsIndoors(p) || (Rooms.AtHome(p) && BuildMode) || player.Climb is not null
+            || session.State.House.RoomAt(p) == RoomId.Balcony;
         Cutaway = inside;
         foreach (Node roof in _roofs)
         {
             roof.Visible = !inside && !BuildMode;
+        }
+
+        foreach (Node roof in _upperRoofs)
+        {
+            roof.Visible = !inside && !BuildMode;
+        }
+
+        // Downstairs (or building the ground floor) the whole upper floor is lifted away.
+        bool showUpper = BuildMode ? BuildUpper : !inside || upstairs;
+        if (showUpper != _upperShown)
+        {
+            _upperShown = showUpper;
+            _upper.Visible = showUpper;
         }
 
         Vector2 toCamera = new(cameraPosition.X - p.X, cameraPosition.Z - p.Y);
@@ -556,6 +710,10 @@ public sealed class HouseView
             {
                 target = 0.12f;
             }
+            else if (upstairs && !Floors.IsUpper(wall.Segment.Center))
+            {
+                target = 1f; // ground-floor walls under the upper floor stay up
+            }
             else if (inside)
             {
                 Vector2 c = wall.Segment.Center;
@@ -566,7 +724,7 @@ public sealed class HouseView
                     target = 0.12f;
                 }
             }
-            else if (Rooms.Lot.Contains(p))
+            else if (Rooms.AtHome(p))
             {
                 // Outside but close: drop exterior walls hiding the player behind them.
                 Vector2 c = wall.Segment.Center;

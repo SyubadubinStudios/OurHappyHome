@@ -643,7 +643,7 @@ public sealed partial class GameSession
 
         int seated = 0;
         foreach (FamilyMember m in State.Members.Where(m => !m.Away && !m.InDanger && m.Id != State.Controlled
-            && Rooms.Lot.Contains(m.Position) && m.Task?.Activity is not (ActivityId.Eat or ActivityId.Sleep or ActivityId.Shower)
+            && Rooms.AtHome(m.Position) && m.Task?.Activity is not (ActivityId.Eat or ActivityId.Sleep or ActivityId.Shower)
             && m.Needs[NeedKind.Hunger] < 92f))
         {
             PreparedFood? food = State.Pantry.Where(p => !p.Recipe.IsDrink && p.Servings > 0).OrderByDescending(p => p.Quality).FirstOrDefault();

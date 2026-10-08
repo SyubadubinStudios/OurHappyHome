@@ -97,8 +97,10 @@ public sealed class GameRenderer : IDisposable
         GameSession s = Session;
         FamilyMember player = s.Controlled;
         bool indoors = s.IsIndoors(player.Position);
-        Vector3 focus = new(player.Position.X, player.Anchor?.Y ?? 0f, player.Position.Y);
-        Rig.Scenic = !indoors && !Rooms.Lot.Inflate(4f).Contains(player.Position);
+        Vector3 focus = player.Climb is { } climb
+            ? Floors.StairPoint(climb.Up ? climb.Progress : 1f - climb.Progress)
+            : Floors.ToRender(player.Position, player.Anchor?.Y ?? 0f);
+        Rig.Scenic = !indoors && !Rooms.NearHome(player.Position, 4f);
         Rig.Update(dt, focus, indoors);
 
         ApplyTimeAndWeather(dt);
@@ -170,7 +172,7 @@ public sealed class GameRenderer : IDisposable
             _sun.Position = new Vector3(-40f, 100f, 50f);
         }
 
-        Vector3 focus = new(Session.Controlled.Position.X, 0f, Session.Controlled.Position.Y);
+        Vector3 focus = Floors.ToRender(Session.Controlled.Position);
         _sun.Position += focus;
         _sun.LookAt(focus);
 
@@ -234,14 +236,17 @@ public sealed class GameRenderer : IDisposable
             return null;
         }
 
-        float t = -ray.Origin.Y / ray.Direction.Y;
+        // Upstairs (or building the upper floor) clicks land on the upper floor plane.
+        bool upper = House.BuildMode ? House.BuildUpper : Floors.IsUpper(Session.Controlled.Position);
+        float plane = upper ? Floors.Height : 0f;
+        float t = (plane - ray.Origin.Y) / ray.Direction.Y;
         if (t < 0f)
         {
             return null;
         }
 
         Vector3 hit = ray.At(t);
-        return new Vector2(hit.X, hit.Z);
+        return upper ? new Vector2(hit.X, hit.Z) + Floors.UpperOffset : new Vector2(hit.X, hit.Z);
     }
 
     /// <summary>Projects a world point to normalised screen coordinates (0-1); null when behind the camera.</summary>
@@ -284,10 +289,10 @@ public sealed class GameRenderer : IDisposable
         }
 
         float yaw = rotation * MathF.PI / 2f;
-        _ghost.Position = new Vector3(position.X, 0.02f + (0.05f * MathF.Sin(_time * 6f)), position.Y);
+        _ghost.Position = Floors.ToRender(position, 0.02f + (0.05f * MathF.Sin(_time * 6f)));
         _ghost.EulerAngles = new Vector3(0f, yaw, 0f);
         Vector2 size = rotation % 2 == 1 ? new Vector2(def.Footprint.Y, def.Footprint.X) : def.Footprint;
-        _ghostFootprint!.Position = new Vector3(position.X, 0.03f, position.Y);
+        _ghostFootprint!.Position = Floors.ToRender(position, 0.03f);
         _ghostFootprint.Scale = new Vector3(size.X, 0.02f, size.Y);
         _ghostFootprint.DetachMesh();
         _ghostFootprint.AttachMesh(Meshes.UnitBox, Textures.Solid(valid ? "#7CFF9B" : "#FF5C5C", 0.5f, emissive: 1.2f));

@@ -33,6 +33,7 @@ public sealed class TownView
     private readonly List<(Node Node, float Phase)> _foam = [];
     private readonly List<(Node Node, Vector2 Center, float Radius, float Speed, float Height, float Phase)> _gulls = [];
     private float _fireflyTimer;
+    private readonly List<(Node Node, float Offset)> _angkots = [];
     private int _butterflyTick;
     private readonly List<Node> _lanterns = [];
     private bool _festivalShown = true;
@@ -60,6 +61,18 @@ public sealed class TownView
         }
 
         BuildSeagulls();
+        for (int i = 0; i < 2; i++)
+        {
+            Node angkot = _scene.CreateNode(_root, "angkot");
+            Node body = angkot.CreateChild("angkot-body");
+            if (_models.Height("angkot", body, 2.1f) is null)
+            {
+                _m.Block(body, 0f, 0f, 0.3f, new Vector3(1.7f, 1.6f, 4.2f), _t.Solid("#2E86C1", 0.4f));
+            }
+
+            angkot.SetShadowsRecursive(true, true);
+            _angkots.Add((angkot, i * 0.5f));
+        }
 
         for (int i = 0; i < MaxStreetLights; i++)
         {
@@ -644,6 +657,32 @@ public sealed class TownView
         }
     }
 
+    /// <summary>
+    /// Where an angkot is along its loop (0-1): eastbound along z = 18.8, then
+    /// westbound along z = 21.2, easing to a stop for a few seconds at each halte.
+    /// </summary>
+    private static (Vector3 Position, float Yaw) AngkotPose(float t)
+    {
+        const float west = -250f;
+        const float east = 228f;
+        bool eastbound = t < 0.5f;
+        float u = eastbound ? t * 2f : (t - 0.5f) * 2f;
+        float x = eastbound ? float.Lerp(west, east, u) : float.Lerp(east, west, u);
+
+        // Linger near a bus stop on this side of the road.
+        foreach ((float hx, float hz, float _) in WorldMap.HalteSpots)
+        {
+            bool sameSide = eastbound ? hz < 20f : hz > 20f;
+            float d = x - hx;
+            if (sameSide && MathF.Abs(d) < 14f)
+            {
+                x = hx + (MathF.Sign(d) * MathF.Pow(MathF.Abs(d) / 14f, 2.2f) * 14f);
+            }
+        }
+
+        return (new Vector3(x, 0f, eastbound ? 18.8f : 21.2f), eastbound ? MathF.PI / 2f : -MathF.PI / 2f);
+    }
+
     /// <summary>Seagulls circling over the beach and the pier.</summary>
     private void BuildSeagulls()
     {
@@ -841,6 +880,13 @@ public sealed class TownView
         }
 
         _t.Water.Update(o => o with { UvOffset = new Vector2(_time * 0.01f, _time * 0.006f) });
+
+        // Angkots drive the main street east and back west, pausing at the bus stops.
+        foreach ((Node angkot, float offset) in _angkots)
+        {
+            (Vector3 pos, float yaw) = AngkotPose(((_time / 110f) + offset) % 1f);
+            angkot.SetTransform(pos, Quaternion.CreateFromAxisAngle(Vector3.UnitY, yaw), Vector3.One);
+        }
 
         // Waves wash up the beach and back.
         foreach ((Node line, float phase) in _foam)

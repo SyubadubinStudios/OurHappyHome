@@ -76,6 +76,16 @@ Album keluarga (gambar 19) sekarang punya bingkai (klasik, kayu, pastel, emas, f
 | **Langit senja dengan awan di atas danau perkemahan** | **Pantai sore** |
 | ![](images/38-golden-hour-sky.png) | ![](images/15-trip-beach-sunset.png) |
 
+## Baru di v1.4
+
+| Rumah dua lantai dengan balkon | Naik tangga |
+|---|---|
+| ![](images/39-two-storey-front.png) | ![](images/41-stairs-climb.png) |
+| **Studio di lantai atas** | **Balkon dengan teleskop** |
+| ![](images/42-upstairs-studio.png) | ![](images/44-upstairs-balcony.png) |
+| **Mode bangun lantai atas** | **Bersepeda melewati halte angkot** |
+| ![](images/45-build-upper-floor.png) | ![](images/46-bicycle-and-halte.png) |
+
 ## Seni & aset
 
 | Concept art keluarga | Interior rumah |

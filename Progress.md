@@ -134,6 +134,32 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - [x] 52 test xUnit (baru: pantai & perkemahan ramai, area dangkal, pengunjung)
 - [x] 38 screenshot otomatis (3 baru)
 
+## 2026-10-08 · v1.4
+
+### Aset (Blender MCP)
+- [x] Sepeda anak dengan keranjang, angkot (dengan tulisan ANGKOT), halte (dengan tulisan HALTE) di
+      `model_props.py`
+
+### Game
+- [x] `World/Floors`: lantai atas berada di wilayah tersendiri pada bidang simulasi (offset), diangkat dan
+      dikembalikan ke atas rumah saat dirender; dinding, collision, navigasi (`UpperNav`) dan perabot memakai
+      sistem yang sama
+- [x] Ruangan baru: Lantai Atas & Tangga (dengan Balkon), Loteng, Studio Atas
+- [x] Tangga: collision di bawah, lubang berpagar di atas, `StairClimb` beranimasi, interaksi naik/turun,
+      `FindPath` lintas lantai, `HomeDistance` untuk pilihan AI
+- [x] `Rooms.AtHome` menggantikan pemeriksaan `Rooms.Lot` (22 tempat) agar lantai atas tetap dianggap rumah
+- [x] HouseView: node lantai atas, pelat lantai, atap per lantai, cutaway per lantai, tangga & pagar, balkon
+- [x] CharacterView, kamera, efek, suara, hantu mode bangun dan klik-jalan memetakan posisi lewat
+      `Floors.ToRender`
+- [x] Mode bangun dengan tombol Lantai bawah / Lantai atas
+- [x] Sepeda terlihat, halte & lalu lintas angkot
+- [x] Pencapaian Rumah Bertingkat
+- [x] Mode pengembang `OHH_SHOTS_ONLY=house`
+
+### Kualitas
+- [x] 55 test xUnit (baru: lantai atas, naik-turun tangga, keluarga sehat dan memakai lantai atas)
+- [x] 46 screenshot otomatis (8 baru)
+
 ## Catatan perbaikan selama pengembangan
 - Titik pendekatan kursi makan semula berada di dalam meja, sehingga AI tidak pernah sampai. Sekarang titiknya dihitung di luar footprint, dan perjalanan punya batas waktu.
 - Bahan makanan habis di tengah minggu. Sekarang orang tua berbelanja otomatis saat persediaan menipis.
@@ -148,3 +174,4 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - (v1.3) Laut tampak seperti pasir: material air memantulkan langit terang pada sudut kamera rendah. Laut kini memakai material sendiri yang lebih gelap dan kurang memantul.
 - (v1.3) Langit hanya warna latar. ThreeNet tidak punya skybox, jadi dibuat kubah langit sendiri; tekstur awan dicerminkan terhadap garis cakrawala karena arah V bola tidak pasti.
 - (v1.3) Handuk berdiri tegak karena `EulerAngles` menimpa rotasi -90° quad tanah; kini rotasi digabung (yaw × pitch).
+- (v1.4) Setelah naik tangga, pemain "terlempar" ke z = -300: `Collision.Move` membatasi posisi ke batas kota. Sekarang wilayah lantai atas punya batasnya sendiri.

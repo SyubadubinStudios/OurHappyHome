@@ -47,7 +47,7 @@ public sealed class EventDirector(GameSession session)
         }
 
         // Only at home: trips have their own encounters.
-        if (!Rooms.Lot.Contains(s.Controlled.Position))
+        if (!Rooms.AtHome(s.Controlled.Position))
         {
             return;
         }

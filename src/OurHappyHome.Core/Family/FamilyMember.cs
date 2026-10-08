@@ -88,6 +88,9 @@ public sealed class FamilyMember
 
     public bool Sick { get; set; }
 
+    /// <summary>On the stairs between floors (the renderer follows the steps).</summary>
+    public StairClimb? Climb { get; set; }
+
     /// <summary>Costume item worn on the head (party hat, straw hat...), or null.</summary>
     public string? Accessory { get; set; }
 

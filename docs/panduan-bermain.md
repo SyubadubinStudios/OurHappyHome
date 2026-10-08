@@ -116,6 +116,9 @@ Keluar lewat keset merah di depan pintu (**Keluar**). Gedung punya jam buka: sek
 
 ## Perjalanan & menginap
 
+Kalau punya **sepeda** (beli di Mal), Raka mengendarainya setiap kali berjalan di luar rumah, dan lebih cepat.
+Angkot berkeliling jalan utama dan berhenti di halte dekat rumah, di taman dan di pusat kota.
+
 Di peta (**M**) pilih cara berangkat: **jalan kaki/sepeda**, **mobil bersama Ayah** (paling cepat, butuh
 mobil di garasi dan Ayah di rumah; Ayah ikut menyetir), atau **angkot** (Rp 5.000 per orang).
 
@@ -151,6 +154,12 @@ rumah mengajak main di akhir pekan.
 - **Pindah/Jual, Cat (24 warna), Lantai.**
 - Perabot baru di v1.1: akuarium, kursi bean bag, lukisan dinding, mesin arkade, dan ayunan jaring
   untuk halaman.
+
+**Lantai atas (Bab 3):** bangun **Lantai Atas & Tangga** untuk mendapat tangga di lorong, lorong atas dan
+balkon di atas ruang keluarga, lalu **Loteng** dan **Studio Atas**. Dekati ujung tangga lalu pilih
+**Naik ke lantai atas / Turun ke lantai bawah**, atau klik saja tempat di lantai lain dan karaktermu akan
+berjalan lewat tangga. Di mode bangun, pilih **Lantai bawah / Lantai atas** untuk menaruh perabot di lantai
+yang benar. Dari balkon kamu bisa melihat bintang dengan teleskop.
 
 Judul rumah naik mengikuti jumlah ruangan: Rumah Kecil → Rumah Keluarga → Rumah Besar → Rumah Impian.
 

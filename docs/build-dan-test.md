@@ -12,7 +12,7 @@
 ```bash
 dotnet build OurHappyHome.slnx                       # build semua
 dotnet run --project src/OurHappyHome                # main
-dotnet test                                          # 52 test simulasi (±13 detik)
+dotnet test                                          # 55 test simulasi (±15 detik)
 dotnet run --project src/OurHappyHome -- --screenshots docs/images   # ambil ulang semua screenshot
 dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket rilis
 ```
@@ -40,6 +40,8 @@ dotnet publish src/OurHappyHome -c Release -r win-x64 --self-contained   # paket
 - kalender: hari libur, libur semester, musim dan festival bulanan; tetangga mengikuti jadwal dan Dimas
   berkunjung saat sudah berteman baik; stan festival dan lomba membuat kenangan; mobil lebih cepat dan
   angkot memungut ongkos; menginap hanya sebelum hari libur; pakaian otomatis saat hujan
+- lantai atas dengan tangga, balkon dan ruangannya sendiri; naik-turun tangga dan pindah lantai lewat jalur;
+  keluarga tetap sehat dan memakai lantai atas
 - semua resep memakai bahan yang ada di katalog; kostum butuh barangnya, dan kostum serta dekorasi
   album ikut tersimpan
 

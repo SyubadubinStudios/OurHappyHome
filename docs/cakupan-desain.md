@@ -50,4 +50,5 @@ Pemetaan dari setiap bagian `Our_Happy_Home_Game_Design.md` ke implementasinya.
 - **11 pencapaian**, rapor sekolah, buku kas keluarga, dan ramalan cuaca besok.
 - **Dua bahasa** (ID/EN), autosave, dan mode screenshot otomatis.
 - **Langit, pantai dan perkemahan yang hidup** dengan pengunjung, burung, kupu-kupu dan kunang-kunang (v1.3).
-- **52 test otomatis** untuk simulasi.
+- **Rumah dua lantai** dengan tangga, balkon, loteng dan studio; sepeda, halte dan angkot (v1.4).
+- **55 test otomatis** untuk simulasi.

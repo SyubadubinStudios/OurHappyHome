@@ -48,7 +48,7 @@ public sealed class AboutScreen : UserControl, IKeyHandler
             FontSize = Ui.Fs(14),
             TextWrapping = TextWrapping.Wrap,
         });
-        about.Children.Add(new TextBlock { Text = Loc.T("Versi 1.3 · .NET 10 · Avalonia · ThreeNet", "Version 1.3 · .NET 10 · Avalonia · ThreeNet"), Foreground = Ui.B("#CDBBA8"), FontSize = Ui.Fs(12) });
+        about.Children.Add(new TextBlock { Text = Loc.T("Versi 1.4 · .NET 10 · Avalonia · ThreeNet", "Version 1.4 · .NET 10 · Avalonia · ThreeNet"), Foreground = Ui.B("#CDBBA8"), FontSize = Ui.Fs(12) });
         about.Children.Add(Ui.Stack(10, Orientation.Horizontal,
             Ui.Button(Loc.T("Kembali", "Back"), Back, icon: "◀"),
             Ui.Ghost(Loc.T("Jeda / lanjut kredit", "Pause / resume credits"), () => _paused = !_paused, "⏯")));
