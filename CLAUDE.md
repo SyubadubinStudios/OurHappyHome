@@ -23,7 +23,7 @@ dotnet run --project src/OurHappyHome -- --screenshots docs/images      # regene
   `SaveSystem`); `GameSession` (partial files: `.Movement`, `.Tasks`, `.AI`, `.Interactions`, `.Story`, `.Player`)
   is the runtime that ticks every family member each frame. `Scenarios/` = random/emergency events + `EventDirector`
   (Cozy/Adventure scaling). All presentation needs go through `Simulation/EventBus.cs` events.
-- `src/OurHappyHome` — Avalonia 12 app on ThreeNet 0.7.0 (NuGet). `Rendering/` (GameRenderer, HouseView with wall
+- `src/OurHappyHome` — Avalonia 12 app on ThreeNet 0.12.2 (NuGet). `Rendering/` (GameRenderer, HouseView with wall
   cutaway, TownView, CharacterView + AnimatedFigure (per-instance rigged NPCs/pets), Effects particles, procedural Textures), `Audio/` (procedural Synth, SoundBank,
   MusicComposer, AudioManager on ThreeNet's mixer), `Views/` (MainWindow, MenuScreen, GameScreen partials: HUD,
   Panels, Build; MiniGames, AboutScreen with scrolling credits, ScreenshotDirector), `UI/` (code-built UI kit).

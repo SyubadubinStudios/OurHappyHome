@@ -24,14 +24,14 @@ installer/
 
 ```powershell
 # Windows (PowerShell). Linux & macOS ikut dibangun bila Git Bash / bash tersedia.
-powershell -ExecutionPolicy Bypass -File installer/build-all.ps1 -Version 1.4.0
+powershell -ExecutionPolicy Bypass -File installer/build-all.ps1 -Version 1.4.1
 powershell -ExecutionPolicy Bypass -File installer/build-all.ps1 -Platforms win
 ```
 
 ```bash
 # Linux / macOS / Git Bash
-bash installer/linux/build-linux.sh 1.4.0
-bash installer/macos/build-macos.sh 1.4.0
+bash installer/linux/build-linux.sh 1.4.1
+bash installer/macos/build-macos.sh 1.4.1
 ```
 
 | Paket | Isi | Ukuran ±|
@@ -59,7 +59,7 @@ Kebutuhan: Windows 10/11 64-bit dengan GPU DirectX 12.
 ### Linux
 
 ```bash
-tar -xzf OurHappyHome-1.4.0-linux-x64.tar.gz
+tar -xzf OurHappyHome-1.4.1-linux-x64.tar.gz
 cd OurHappyHome && ./install.sh          # ke ~/.local/share/OurHappyHome, perintah: ourhappyhome
 ~/.local/share/OurHappyHome/uninstall.sh  # copot (tambah --remove-saves untuk hapus simpanan)
 ```
@@ -75,7 +75,7 @@ Developer ID dan lakukan notarisasi:
 
 ```bash
 codesign --deep --force --options runtime --sign "Developer ID Application: ..." "Our Happy Home.app"
-xcrun notarytool submit OurHappyHome-1.4.0-macos-arm64.zip --apple-id ... --wait
+xcrun notarytool submit OurHappyHome-1.4.1-macos-arm64.zip --apple-id ... --wait
 ```
 
 Kebutuhan: macOS 12 atau lebih baru (Metal). Ada paket terpisah untuk Apple Silicon (`arm64`) dan

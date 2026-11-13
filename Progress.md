@@ -160,6 +160,12 @@ Checklist pengembangan. Roadmap ada di [Plan.md](Plan.md).
 - [x] 55 test xUnit (baru: lantai atas, naik-turun tangga, keluarga sehat dan memakai lantai atas)
 - [x] 46 screenshot otomatis (8 baru)
 
+## 2026-11-13 · v1.4.1
+
+- [x] ThreeNet & ThreeNet.Avalonia diperbarui dari 0.7.0 ke 0.12.2 (tanpa perubahan kode)
+- [x] Diuji ulang: build bersih, 55 test lulus, mode screenshot merender 46 adegan tanpa error, game berjalan
+      normal
+
 ## Catatan perbaikan selama pengembangan
 - Titik pendekatan kursi makan semula berada di dalam meja, sehingga AI tidak pernah sampai. Sekarang titiknya dihitung di luar footprint, dan perjalanan punya batas waktu.
 - Bahan makanan habis di tengah minggu. Sekarang orang tua berbelanja otomatis saat persediaan menipis.
